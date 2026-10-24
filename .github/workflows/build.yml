@@ -68,7 +68,7 @@ jobs:
         if: steps.check_release.outputs.exists == 'false'
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.6'
+          flutter-version: '3.x'
           channel: 'stable'
 
       - name: Install Dependencies
@@ -89,9 +89,16 @@ jobs:
       - name: Patch ffmpeg_kit_flutter for Flutter v1 embedding removal
         if: steps.check_release.outputs.exists == 'false'
         run: |
-          for FILE in $(find $HOME/.pub-cache -name "FFmpegKitFlutterPlugin.java" 2>/dev/null); do
-            sed -i 's/io.flutter.plugin.common.PluginRegistry.Registrar/Object/g' "$FILE"
-            echo "Patched Registrar in: $FILE"
+          find $HOME/.pub-cache -name "FFmpegKitFlutterPlugin.java" 2>/dev/null | while read FILE; do
+            node -e "
+              const fs = require('fs');
+              let c = fs.readFileSync(process.argv[1], 'utf8');
+              c = c.replace(/public static void registerWith\([^)]+\)\s*\{[\s\S]*?\n    \}/, 'public static void registerWith(final Object registrar) {}');
+              c = c.replace(/final io\.flutter\.plugin\.common\.PluginRegistry\.Registrar registrar/, 'final Object registrar');
+              c = c.replace(/if\s*\(\s*registrar\s*!=\s*null\s*\)\s*\{[\s\S]*?\}\s*else\s*\{/, '{');
+              fs.writeFileSync(process.argv[1], c);
+              console.log('Successfully patched FFmpegKitFlutterPlugin.java:', process.argv[1]);
+            " "$FILE"
           done
 
       - name: Configure Keystore and Signing
