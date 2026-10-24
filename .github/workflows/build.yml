@@ -68,7 +68,7 @@ jobs:
         if: steps.check_release.outputs.exists == 'false'
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.x'
+          flutter-version: '3.19.6'
           channel: 'stable'
 
       - name: Install Dependencies
@@ -85,6 +85,14 @@ jobs:
           else
             echo "flutter_avif_android Java file not found, skipping patch."
           fi
+
+      - name: Patch ffmpeg_kit_flutter for Flutter v1 embedding removal
+        if: steps.check_release.outputs.exists == 'false'
+        run: |
+          for FILE in $(find $HOME/.pub-cache -name "FFmpegKitFlutterPlugin.java" 2>/dev/null); do
+            sed -i 's/io.flutter.plugin.common.PluginRegistry.Registrar/Object/g' "$FILE"
+            echo "Patched Registrar in: $FILE"
+          done
 
       - name: Configure Keystore and Signing
         if: steps.check_release.outputs.exists == 'false'
