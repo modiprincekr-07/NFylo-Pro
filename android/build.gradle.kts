@@ -21,6 +21,14 @@ allprojects {
             substitute(module("com.google.android.play:feature-delivery")).using(module("androidx.annotation:annotation:1.9.1"))
             substitute(module("com.google.android.play:integrity")).using(module("androidx.annotation:annotation:1.9.1"))
             substitute(module("com.google.android.play:asset-delivery")).using(module("androidx.annotation:annotation:1.9.1"))
+            
+            // Drop-in replacement for retired Arthenica FFmpegKit binaries (com.arthenica -> dev.ffmpegkit-maintained)
+            substitute(module("com.arthenica:ffmpeg-kit-https")).using(module("dev.ffmpegkit-maintained:ffmpeg-kit-https:6.0.4"))
+            substitute(module("com.arthenica:ffmpeg-kit-https:6.0-2")).using(module("dev.ffmpegkit-maintained:ffmpeg-kit-https:6.0.4"))
+            substitute(module("com.arthenica:ffmpeg-kit-https:6.0-2.LTS")).using(module("dev.ffmpegkit-maintained:ffmpeg-kit-https:6.0.4"))
+            substitute(module("com.arthenica:ffmpeg-kit-full")).using(module("dev.ffmpegkit-maintained:ffmpeg-kit-full:6.0.4"))
+            substitute(module("com.arthenica:ffmpeg-kit-min")).using(module("dev.ffmpegkit-maintained:ffmpeg-kit-min:6.0.4"))
+            substitute(module("com.arthenica:ffmpeg-kit")).using(module("dev.ffmpegkit-maintained:ffmpeg-kit:6.0.4"))
         }
     }
 }

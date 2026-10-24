@@ -86,7 +86,7 @@ dependencies:
   qr_flutter: ^4.1.0
   image: ^4.3.0
   syncfusion_flutter_pdf: ^33.2.6
-  ffmpeg_kit_flutter: ^6.0.3
+  ffmpeg_kit_flutter: ^6.0.3-LTS
   record: ^5.2.0
   image_picker: ^1.1.2
   just_audio: ^0.10.5
