@@ -330,7 +330,7 @@ class MediaServerService extends ChangeNotifier {
 
       final targetFile = File(p.join(destDir, fileName));
       final sink = targetFile.openWrite();
-      await request.pipe(sink);
+      await request.cast<List<int>>().pipe(sink);
 
       request.response
         ..statusCode = HttpStatus.ok

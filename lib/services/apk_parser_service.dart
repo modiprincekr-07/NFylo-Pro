@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:archive/archive.dart';
+import 'package:archive/archive_io.dart' hide ZLibDecoder;
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
@@ -347,17 +347,17 @@ class ApkParserService {
     // Add base.apk
     final baseFile = File(baseApkPath);
     if (baseFile.existsSync()) {
-      encoder.addFile(baseFile, 'base.apk');
+      await encoder.addFile(baseFile, 'base.apk');
     }
 
     // Add splits
     for (final split in splitPaths) {
       final sFile = File(split);
       if (sFile.existsSync()) {
-        encoder.addFile(sFile, p.basename(split));
+        await encoder.addFile(sFile, p.basename(split));
       }
     }
-    encoder.close();
+    await encoder.close();
 
     return outBundlePath;
   }
@@ -451,7 +451,7 @@ class ApkParserService {
     } else if (entry.method == 8) {
       // Raw Deflate (RFC 1951)
       try {
-        final decoded = const ZLibDecoder(raw: true).convert(compBytes);
+        final decoded = ZLibDecoder(raw: true).convert(compBytes);
         return Uint8List.fromList(decoded);
       } catch (_) {
         // Fallback to archive's Inflate

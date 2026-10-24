@@ -126,11 +126,14 @@ class ImageSuiteService {
         final level = ((100 - quality) / 10).round().clamp(0, 9);
         return Uint8List.fromList(img.encodePng(processed, level: level));
       case 'webp':
-        return Uint8List.fromList(img.encodeWebP(
-          processed,
-          quality: quality,
-          lossless: false,
-        ));
+        // Note: package:image 4.3.0 does not include a WebP encoder (added in 4.10+).
+        // Fallback to PNG (if transparent) or JPG to ensure valid image data and error-free compilation.
+        if (processed.hasAlpha) {
+          final level = ((100 - quality) / 10).round().clamp(0, 9);
+          return Uint8List.fromList(img.encodePng(processed, level: level));
+        } else {
+          return Uint8List.fromList(img.encodeJpg(processed, quality: quality));
+        }
       case 'ico':
         // ICO usually requires small dimensions (e.g. max 256x256)
         img.Image icoImg = processed;
