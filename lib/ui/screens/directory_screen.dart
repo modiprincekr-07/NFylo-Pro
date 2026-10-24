@@ -32,6 +32,7 @@ import '../widgets/nfile_address_bar.dart';
 import '../../services/network_connections_service.dart';
 import 'network_connection_wizard_screen.dart';
 import 'remote_explorer_screen.dart';
+import '../widgets/folder_customization_dialog.dart';
 
 class DirectoryScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -131,6 +132,9 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
   void _handleAction(BuildContext context, String action, String path) async {
     final provider = context.read<FileManagerProvider>();
     switch (action) {
+      case 'customize_folder':
+        await FolderCustomizationDialog.show(context, path);
+        break;
       case 'archive':
         final res = await CreateArchiveDialog.show(
           context,
@@ -475,92 +479,134 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: InkWell(
-                              onTap: () {
-                                provider.setGridView(false);
-                                setStateModal(() {});
-                              },
-                              borderRadius: BorderRadius.circular(16),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: !provider.isGridView
-                                      ? theme.colorScheme.primary
-                                      : theme.colorScheme.surfaceVariant,
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Broken.row_vertical,
-                                      color: !provider.isGridView
-                                          ? theme.colorScheme.onPrimary
-                                          : theme.colorScheme.onSurface,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'List View',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: !provider.isGridView
-                                            ? theme.colorScheme.onPrimary
-                                            : theme.colorScheme.onSurface,
+                      Builder(
+                        builder: (context) {
+                          final isCurrentGrid = provider.getViewModeForPath(provider.currentPath);
+                          return Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: () {
+                                        provider.setFolderViewMode(provider.currentPath, false);
+                                        setStateModal(() {});
+                                      },
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 12,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: !isCurrentGrid
+                                              ? theme.colorScheme.primary
+                                              : theme.colorScheme.surfaceVariant,
+                                          borderRadius: BorderRadius.circular(16),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Broken.row_vertical,
+                                              color: !isCurrentGrid
+                                                  ? theme.colorScheme.onPrimary
+                                                  : theme.colorScheme.onSurface,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'List View',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: !isCurrentGrid
+                                                    ? theme.colorScheme.onPrimary
+                                                    : theme.colorScheme.onSurface,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: InkWell(
-                              onTap: () {
-                                provider.setGridView(true);
-                                setStateModal(() {});
-                              },
-                              borderRadius: BorderRadius.circular(16),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: provider.isGridView
-                                      ? theme.colorScheme.primary
-                                      : theme.colorScheme.surfaceVariant,
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Broken.element_3,
-                                      color: provider.isGridView
-                                          ? theme.colorScheme.onPrimary
-                                          : theme.colorScheme.onSurface,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Grid View',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: provider.isGridView
-                                            ? theme.colorScheme.onPrimary
-                                            : theme.colorScheme.onSurface,
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: () {
+                                        provider.setFolderViewMode(provider.currentPath, true);
+                                        setStateModal(() {});
+                                      },
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 12,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: isCurrentGrid
+                                              ? theme.colorScheme.primary
+                                              : theme.colorScheme.surfaceVariant,
+                                          borderRadius: BorderRadius.circular(16),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Broken.element_3,
+                                              color: isCurrentGrid
+                                                  ? theme.colorScheme.onPrimary
+                                                  : theme.colorScheme.onSurface,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Grid View',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: isCurrentGrid
+                                                    ? theme.colorScheme.onPrimary
+                                                    : theme.colorScheme.onSurface,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ),
-                        ],
+                              const SizedBox(height: 10),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Broken.folder_favorite,
+                                        size: 16,
+                                        color: provider.isFolderViewOverrideEnabled(provider.currentPath)
+                                            ? theme.colorScheme.primary
+                                            : theme.colorScheme.onSurface.withOpacity(0.5),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Remember view for this folder only',
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Switch.adaptive(
+                                    value: provider.isFolderViewOverrideEnabled(provider.currentPath),
+                                    activeColor: theme.colorScheme.primary,
+                                    onChanged: (val) {
+                                      provider.setFolderViewOverrideEnabled(provider.currentPath, val);
+                                      setStateModal(() {});
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
+                          );
+                        },
                       ),
                       const SizedBox(height: 20),
                       Theme(
@@ -1316,7 +1362,8 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
               );
               if (firstHighlightedIndex != -1) {
                 double targetOffset = 0.0;
-                if (provider.isGridView) {
+                final isCurrentFolderGrid = provider.getViewModeForPath(provider.currentPath);
+                if (isCurrentFolderGrid) {
                   final crossAxisCount =
                       (MediaQuery.of(context).size.width /
                               (110 * provider.iconScale))
@@ -1727,6 +1774,14 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
                         tooltip: 'View & Sort Options',
                         onPressed: () => _showSortModal(context, provider),
                       ),
+                      IconButton(
+                        icon: Icon(
+                          provider.enableSplitScreen ? Icons.splitscreen_rounded : Icons.vertical_split_rounded,
+                          color: provider.enableSplitScreen ? theme.colorScheme.primary : null,
+                        ),
+                        tooltip: provider.enableSplitScreen ? 'Disable Dual-Pane' : 'Enable Dual-Pane Split View',
+                        onPressed: () => provider.toggleSplitScreen(),
+                      ),
                       PopupMenuButton<String>(
                         icon: const Icon(Broken.add_square, size: 26),
                         tooltip: 'Create New',
@@ -1828,10 +1883,14 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
                       }
                     },
                     builder: (context, candidateData, rejectedData) {
+                      final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+                      final isTabletWidth = MediaQuery.of(context).size.width >= 720;
+                      final isSplitActive = provider.enableSplitScreen || (provider.dualPaneAutoLandscape && (isLandscape || isTabletWidth));
+
                       return GestureDetector(
                         onHorizontalDragEnd: (details) {
                           if (!provider.enableMultipleTabs ||
-                              provider.enableSplitScreen ||
+                              isSplitActive ||
                               isSelectionMode) {
                             return;
                           }
@@ -1858,7 +1917,7 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
                           }
                         },
                         behavior: HitTestBehavior.translucent,
-                        child: provider.enableSplitScreen
+                        child: isSplitActive
                             ? const Row(
                                 children: [
                                   Expanded(child: PaneBrowser(tabIndex: 0)),
@@ -2210,15 +2269,18 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
                                       ),
                                     )
                                   else
-                                    SliverPadding(
-                                      padding: EdgeInsets.only(
-                                        bottom: 80,
-                                        left: provider.isGridView ? 16 : 0,
-                                        right: provider.isGridView ? 16 : 0,
-                                        top: 8,
-                                      ),
-                                      sliver: provider.isGridView
-                                          ? SliverGrid(
+                                    Builder(
+                                      builder: (context) {
+                                        final isFolderGrid = provider.getViewModeForPath(provider.currentPath);
+                                        return SliverPadding(
+                                          padding: EdgeInsets.only(
+                                            bottom: 80,
+                                            left: isFolderGrid ? 16 : 0,
+                                            right: isFolderGrid ? 16 : 0,
+                                            top: 8,
+                                          ),
+                                          sliver: isFolderGrid
+                                              ? SliverGrid(
                                               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                                 crossAxisCount:
                                                     (MediaQuery.of(
@@ -2498,6 +2560,8 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
                                                     .length,
                                               ),
                                             ),
+                                        );
+                                      },
                                     ),
                                 ],
                               ),

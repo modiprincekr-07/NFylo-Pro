@@ -176,6 +176,26 @@ class FileUtils {
     }
   }
 
+  static IconData? getNamedFolderIcon(String? iconKey, {bool useMaterial = false}) {
+    if (iconKey == null || iconKey.isEmpty) return null;
+    switch (iconKey) {
+      case 'music': return useMaterial ? Icons.music_note : Broken.music;
+      case 'camera': return useMaterial ? Icons.camera_alt : Broken.camera;
+      case 'video': return useMaterial ? Icons.movie : Broken.video;
+      case 'code': return useMaterial ? Icons.code : Broken.code;
+      case 'document': return useMaterial ? Icons.description : Broken.document;
+      case 'archive': return useMaterial ? Icons.archive : Broken.archive;
+      case 'download': return useMaterial ? Icons.download : Broken.document_download;
+      case 'game': return useMaterial ? Icons.sports_esports : Broken.gameboy;
+      case 'star': return useMaterial ? Icons.star : Broken.star;
+      case 'lock': return useMaterial ? Icons.lock : Broken.lock;
+      case 'work': return useMaterial ? Icons.work : Broken.briefcase;
+      case 'heart': return useMaterial ? Icons.favorite : Broken.heart;
+      case 'cloud': return useMaterial ? Icons.cloud : Broken.cloud;
+      default: return null;
+    }
+  }
+
   static IconData getAdaptiveIcon(IconData icon, bool useMaterial) {
     if (!useMaterial) return icon;
 

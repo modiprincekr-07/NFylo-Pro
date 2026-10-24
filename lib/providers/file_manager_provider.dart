@@ -133,6 +133,13 @@ class FileManagerProvider extends ChangeNotifier {
     _rememberLastFolder = PreferencesService.getRememberLastFolder();
     _useMaterialIcons = PreferencesService.getUseMaterialIcons();
     _exitOption = PreferencesService.getExitOption();
+    _homeSectionOrder = PreferencesService.getHomeSectionOrder();
+    _homeSectionVisibility = PreferencesService.getHomeSectionVisibility();
+    _dualPaneAutoLandscape = PreferencesService.getDualPaneAutoLandscape();
+    _folderViewModes = PreferencesService.getFolderViewModes();
+    _folderColors = PreferencesService.getFolderColors();
+    _folderCustomIcons = PreferencesService.getFolderCustomIcons();
+    _iconPack = PreferencesService.getIconPack();
 
     // One-time migration: reset PDF (and other documents) default open action to 'native' if it was set to 'external'
     if (!PreferencesService.getPdfResetDone()) {
@@ -215,6 +222,13 @@ class FileManagerProvider extends ChangeNotifier {
     _rememberLastFolder = PreferencesService.getRememberLastFolder();
     _useMaterialIcons = PreferencesService.getUseMaterialIcons();
     _exitOption = PreferencesService.getExitOption();
+    _homeSectionOrder = PreferencesService.getHomeSectionOrder();
+    _homeSectionVisibility = PreferencesService.getHomeSectionVisibility();
+    _dualPaneAutoLandscape = PreferencesService.getDualPaneAutoLandscape();
+    _folderViewModes = PreferencesService.getFolderViewModes();
+    _folderColors = PreferencesService.getFolderColors();
+    _folderCustomIcons = PreferencesService.getFolderCustomIcons();
+    _iconPack = PreferencesService.getIconPack();
     notifyListeners();
   }
 
@@ -326,6 +340,58 @@ class FileManagerProvider extends ChangeNotifier {
     if (_folderIconOption == val) return;
     _folderIconOption = val;
     PreferencesService.saveFolderIconStyle(val);
+    notifyListeners();
+  }
+
+  // --- Per-Folder Custom Colors & Icons ---
+  Map<String, int> _folderColors = {};
+  Map<String, int> get folderColors => _folderColors;
+
+  Color? getFolderColor(String path) {
+    final val = _folderColors[path];
+    return val != null ? Color(val) : null;
+  }
+
+  void setFolderColor(String path, Color? color) {
+    if (color == null) {
+      _folderColors.remove(path);
+    } else {
+      _folderColors[path] = color.value;
+    }
+    PreferencesService.saveFolderColors(_folderColors);
+    notifyListeners();
+  }
+
+  Map<String, String> _folderCustomIcons = {};
+  Map<String, String> get folderCustomIcons => _folderCustomIcons;
+
+  String? getFolderCustomIcon(String path) {
+    return _folderCustomIcons[path];
+  }
+
+  void setFolderCustomIcon(String path, String? iconKey) {
+    if (iconKey == null) {
+      _folderCustomIcons.remove(path);
+    } else {
+      _folderCustomIcons[path] = iconKey;
+    }
+    PreferencesService.saveFolderCustomIcons(_folderCustomIcons);
+    notifyListeners();
+  }
+
+  // --- Icon Pack Selector ---
+  String _iconPack = 'broken';
+  String get iconPack => _iconPack;
+
+  void setIconPack(String pack) {
+    if (_iconPack == pack) return;
+    _iconPack = pack;
+    PreferencesService.saveIconPack(pack);
+    if (pack == 'material') {
+      setUseMaterialIcons(true);
+    } else if (pack == 'broken') {
+      setUseMaterialIcons(false);
+    }
     notifyListeners();
   }
 
@@ -498,6 +564,93 @@ class FileManagerProvider extends ChangeNotifier {
   void toggleViewMode() {
     _isGridView = !_isGridView;
     PreferencesService.saveIsGridView(_isGridView);
+    notifyListeners();
+  }
+
+  // --- Per-Folder View Preferences ---
+  Map<String, bool> _folderViewModes = {};
+  Map<String, bool> get folderViewModes => _folderViewModes;
+
+  bool isFolderViewOverrideEnabled(String path) {
+    return _folderViewModes.containsKey(path);
+  }
+
+  bool getViewModeForPath(String path) {
+    return _folderViewModes[path] ?? _isGridView;
+  }
+
+  void setFolderViewOverrideEnabled(String path, bool enabled) {
+    if (enabled) {
+      _folderViewModes[path] = getViewModeForPath(path);
+    } else {
+      _folderViewModes.remove(path);
+    }
+    PreferencesService.saveFolderViewModes(_folderViewModes);
+    notifyListeners();
+  }
+
+  void setFolderViewMode(String path, bool isGrid) {
+    final hasOverride = isFolderViewOverrideEnabled(path);
+    if (hasOverride) {
+      _folderViewModes[path] = isGrid;
+      PreferencesService.saveFolderViewModes(_folderViewModes);
+    } else {
+      _isGridView = isGrid;
+      PreferencesService.saveIsGridView(_isGridView);
+    }
+    notifyListeners();
+  }
+
+  void toggleViewModeForPath(String path) {
+    final current = getViewModeForPath(path);
+    setFolderViewMode(path, !current);
+  }
+
+  // --- Dual-Pane Auto Landscape / Tablet ---
+  bool _dualPaneAutoLandscape = false;
+  bool get dualPaneAutoLandscape => _dualPaneAutoLandscape;
+
+  void toggleDualPaneAutoLandscape() {
+    _dualPaneAutoLandscape = !_dualPaneAutoLandscape;
+    PreferencesService.saveDualPaneAutoLandscape(_dualPaneAutoLandscape);
+    notifyListeners();
+  }
+
+  void setDualPaneAutoLandscape(bool val) {
+    if (_dualPaneAutoLandscape == val) return;
+    _dualPaneAutoLandscape = val;
+    PreferencesService.saveDualPaneAutoLandscape(_dualPaneAutoLandscape);
+    notifyListeners();
+  }
+
+  // --- Home Screen Section Order & Visibility ---
+  List<String> _homeSectionOrder = List.from(PreferencesService.defaultHomeSections);
+  List<String> get homeSectionOrder => _homeSectionOrder;
+
+  Map<String, bool> _homeSectionVisibility = {};
+  Map<String, bool> get homeSectionVisibility => _homeSectionVisibility;
+
+  void setHomeSectionOrder(List<String> order) {
+    _homeSectionOrder = order;
+    PreferencesService.saveHomeSectionOrder(order);
+    notifyListeners();
+  }
+
+  void toggleHomeSectionVisibility(String section) {
+    _homeSectionVisibility[section] = !(_homeSectionVisibility[section] ?? true);
+    PreferencesService.saveHomeSectionVisibility(_homeSectionVisibility);
+    notifyListeners();
+  }
+
+  bool isHomeSectionVisible(String section) {
+    return _homeSectionVisibility[section] ?? true;
+  }
+
+  void reorderHomeSection(int oldIndex, int newIndex) {
+    if (newIndex > oldIndex) newIndex -= 1;
+    final item = _homeSectionOrder.removeAt(oldIndex);
+    _homeSectionOrder.insert(newIndex, item);
+    PreferencesService.saveHomeSectionOrder(_homeSectionOrder);
     notifyListeners();
   }
 

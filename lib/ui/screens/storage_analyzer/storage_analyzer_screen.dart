@@ -1,13 +1,21 @@
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import '../../../core/icon_fonts/broken_icons.dart';
 import '../../../providers/file_manager_provider.dart';
 import '../../../core/utils.dart';
 import '../../../services/app_manager_service.dart';
+import '../../../services/folder_share_service.dart';
+import '../../widgets/file_action_dialogs.dart';
 import '../media_category_screen.dart';
 import 'app_manager_screen.dart';
+import 'models/storage_analysis_models.dart';
+import 'widgets/category_segmented_bar.dart';
+import 'widgets/largest_files_list.dart';
+import 'widgets/storage_treemap_widget.dart';
+import 'widgets/wavy_category_list.dart';
 
 class StorageAnalyzerScreen extends StatefulWidget {
   final String? initialVolumePath;
@@ -17,20 +25,23 @@ class StorageAnalyzerScreen extends StatefulWidget {
   State<StorageAnalyzerScreen> createState() => _StorageAnalyzerScreenState();
 }
 
-class _StorageAnalyzerScreenState extends State<StorageAnalyzerScreen> with SingleTickerProviderStateMixin {
+class _StorageAnalyzerScreenState extends State<StorageAnalyzerScreen>
+    with SingleTickerProviderStateMixin {
   bool _isScanning = true;
   String _currentScanningItem = 'Initializing...';
-  
-  int _appsSize = 0;
-  int _imagesSize = 0;
-  int _videosSize = 0;
-  int _audioSize = 0;
-  int _docsSize = 0;
-  int _systemSize = 0;
-  int _totalUsedSize = 0;
+  int _scannedFilesCount = 0;
+
   int _totalStorageSize = 0;
+  int _totalUsedSize = 0;
+  int _totalScannedBytes = 0;
+  int _appsSize = 0;
 
   late AnimationController _radialController;
+
+  // 9 Categories matching Fylo specifications
+  late List<StorageCategoryInfo> _categories;
+  List<FolderSpaceTile> _folderTiles = [];
+  List<LargestFileItem> _largestFiles = [];
 
   @override
   void initState() {
@@ -39,6 +50,7 @@ class _StorageAnalyzerScreenState extends State<StorageAnalyzerScreen> with Sing
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     );
+    _initCategories();
     _startStorageScan();
   }
 
@@ -48,100 +60,403 @@ class _StorageAnalyzerScreenState extends State<StorageAnalyzerScreen> with Sing
     super.dispose();
   }
 
+  void _initCategories() {
+    _categories = [
+      StorageCategoryInfo(
+        id: 'audio',
+        name: 'Audio',
+        color: const Color(0xFFF97316), // Orange
+        icon: Broken.music,
+        mediaType: MediaType.audios,
+        extensions: ['.mp3', '.m4a', '.wav', '.flac', '.aac', '.ogg', '.opus', '.amr', '.wma'],
+      ),
+      StorageCategoryInfo(
+        id: 'videos',
+        name: 'Videos',
+        color: const Color(0xFFEF4444), // Red
+        icon: Broken.video,
+        mediaType: MediaType.videos,
+        extensions: ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.ts', '.3gp'],
+      ),
+      StorageCategoryInfo(
+        id: 'apks',
+        name: 'APKs',
+        color: const Color(0xFF10B981), // Green
+        icon: Broken.box,
+        mediaType: MediaType.apks,
+        extensions: ['.apk', '.xapk', '.apks'],
+      ),
+      StorageCategoryInfo(
+        id: 'images',
+        name: 'Images',
+        color: const Color(0xFF8B5CF6), // Purple
+        icon: Broken.image,
+        mediaType: MediaType.images,
+        extensions: ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.heic', '.avif', '.svg'],
+      ),
+      StorageCategoryInfo(
+        id: 'pdfs',
+        name: 'PDFs',
+        color: const Color(0xFFEC4899), // Pink
+        icon: Broken.document,
+        mediaType: MediaType.documents,
+        extensions: ['.pdf'],
+      ),
+      StorageCategoryInfo(
+        id: 'archives',
+        name: 'Archives',
+        color: const Color(0xFFF59E0B), // Amber
+        icon: Broken.archive,
+        mediaType: MediaType.archives,
+        extensions: ['.zip', '.rar', '.7z', '.tar', '.gz', '.bz2', '.xz', '.iso'],
+      ),
+      StorageCategoryInfo(
+        id: 'code',
+        name: 'Code',
+        color: const Color(0xFF06B6D4), // Cyan
+        icon: Broken.code,
+        mediaType: MediaType.documents,
+        extensions: [
+          '.dart', '.py', '.js', '.ts', '.html', '.css', '.java', '.kt',
+          '.c', '.cpp', '.h', '.json', '.xml', '.yaml', '.yml', '.sh', '.sql'
+        ],
+      ),
+      StorageCategoryInfo(
+        id: 'text',
+        name: 'Text',
+        color: const Color(0xFF6366F1), // Indigo
+        icon: Broken.document_text,
+        mediaType: MediaType.documents,
+        extensions: ['.txt', '.md', '.log', '.csv', '.tsv', '.rtf', '.ini', '.conf'],
+      ),
+      StorageCategoryInfo(
+        id: 'files',
+        name: 'Files',
+        color: const Color(0xFF64748B), // Slate
+        icon: Broken.folder_2,
+        mediaType: MediaType.documents,
+        extensions: [], // Fallback for other file types
+      ),
+    ];
+  }
+
+  StorageCategoryInfo _getCategoryForExtension(String ext) {
+    for (final cat in _categories) {
+      if (cat.extensions.contains(ext)) {
+        return cat;
+      }
+    }
+    // Fallback to Files
+    return _categories.firstWhere(
+      (c) => c.id == 'files',
+      orElse: () => _categories.last,
+    );
+  }
+
   Future<void> _startStorageScan() async {
     if (!mounted) return;
     setState(() {
       _isScanning = true;
       _currentScanningItem = 'Reading system memory...';
+      _scannedFilesCount = 0;
+      _initCategories();
+      _folderTiles = [];
+      _largestFiles = [];
+      _totalScannedBytes = 0;
     });
 
     final provider = context.read<FileManagerProvider>();
-    final path = widget.initialVolumePath ?? '/storage/emulated/0';
+    final targetPath = widget.initialVolumePath ?? '/storage/emulated/0';
 
     // 1. Fetch total & used storage via provider
-    _totalStorageSize = provider.totalStorageBytes > 0 ? provider.totalStorageBytes : 128 * 1024 * 1024 * 1024;
-    _totalUsedSize = provider.usedStorageBytes > 0 ? provider.usedStorageBytes : 84 * 1024 * 1024 * 1024;
+    _totalStorageSize = provider.totalStorageBytes > 0
+        ? provider.totalStorageBytes
+        : 128 * 1024 * 1024 * 1024;
+    _totalUsedSize = provider.usedStorageBytes > 0
+        ? provider.usedStorageBytes
+        : 84 * 1024 * 1024 * 1024;
 
-    // 2. Fetch app sizes from App Manager Service
-    setState(() {
-      _currentScanningItem = 'Calculating Apps capacity...';
-    });
-    try {
-      final userApps = await AppManagerService.getInstalledApps(includeSystem: false);
-      final systemApps = await AppManagerService.getInstalledApps(includeSystem: true);
-      
-      int appsSum = 0;
-      for (final app in userApps) {
-        appsSum += app.apkSize;
-      }
-      for (final app in systemApps) {
-        if (app.isSystem) {
+    // 2. Fetch app sizes from App Manager Service (if root scanning)
+    if (widget.initialVolumePath == null || widget.initialVolumePath == '/storage/emulated/0') {
+      setState(() {
+        _currentScanningItem = 'Calculating Apps capacity...';
+      });
+      try {
+        final userApps = await AppManagerService.getInstalledApps(includeSystem: false);
+        final systemApps = await AppManagerService.getInstalledApps(includeSystem: true);
+        int appsSum = 0;
+        for (final app in userApps) {
           appsSum += app.apkSize;
         }
+        for (final app in systemApps) {
+          if (app.isSystem) {
+            appsSum += app.apkSize;
+          }
+        }
+        _appsSize = appsSum;
+      } catch (_) {
+        _appsSize = 0;
       }
-      _appsSize = appsSum;
-    } catch (_) {
+    } else {
       _appsSize = 0;
     }
 
-    // 3. Scan directories recursively in background
+    // 3. Scan directories recursively
     try {
-      final rootDir = Directory(path);
+      final rootDir = Directory(targetPath);
       if (rootDir.existsSync()) {
-        int imgBytes = 0;
-        int vidBytes = 0;
-        int audBytes = 0;
-        int docBytes = 0;
+        // Collect top-level directories for proportional Treemap Space Map
+        final topFolderSizes = <String, int>{};
+        try {
+          final topEntities = rootDir.listSync(followLinks: false);
+          for (final entity in topEntities) {
+            if (entity is Directory) {
+              topFolderSizes[entity.path] = 0;
+            }
+          }
+        } catch (_) {}
 
+        final List<LargestFileItem> candidates = [];
         final stream = rootDir.list(recursive: true, followLinks: false);
+        DateTime lastUiUpdate = DateTime.now();
+
         await for (final entity in stream.handleError((_) {})) {
           if (entity is File) {
+            _scannedFilesCount++;
             final filePath = entity.path;
-            final fileName = filePath.split('/').last.split('\\').last;
-            
-            if (mounted) {
-              setState(() {
-                _currentScanningItem = fileName;
-              });
+            final fileName = p.basename(filePath);
+
+            // Throttle UI update to avoid jank
+            final now = DateTime.now();
+            if (now.difference(lastUiUpdate).inMilliseconds > 90) {
+              lastUiUpdate = now;
+              if (mounted) {
+                setState(() {
+                  _currentScanningItem = fileName;
+                });
+              }
             }
 
             try {
               final size = entity.lengthSync();
-              final lowerPath = filePath.toLowerCase();
+              final ext = p.extension(filePath).toLowerCase();
+              final cat = _getCategoryForExtension(ext);
 
-              if (FileUtils.isImage(lowerPath)) {
-                imgBytes += size;
-              } else if (FileUtils.isVideo(lowerPath)) {
-                vidBytes += size;
-              } else if (FileUtils.isAudio(lowerPath)) {
-                audBytes += size;
-              } else {
-                // Check documents
-                const docExts = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv', '.odt', '.ods', '.odp', '.rtf', '.epub'];
-                if (docExts.any((ext) => lowerPath.endsWith(ext)) || FileUtils.isTextOrCode(lowerPath)) {
-                  docBytes += size;
+              cat.size += size;
+              cat.count++;
+              _totalScannedBytes += size;
+
+              // Attribute size to top-level folder
+              for (final folderPath in topFolderSizes.keys) {
+                if (filePath.startsWith(folderPath)) {
+                  topFolderSizes[folderPath] = (topFolderSizes[folderPath] ?? 0) + size;
+                  break;
                 }
+              }
+
+              // Collect large files (> 5MB or maintain top list)
+              if (size > 5 * 1024 * 1024 || candidates.length < 30) {
+                try {
+                  final modified = entity.lastModifiedSync();
+                  candidates.add(
+                    LargestFileItem(
+                      path: filePath,
+                      name: fileName,
+                      size: size,
+                      modified: modified,
+                      extension: ext,
+                      color: cat.color,
+                      icon: cat.icon,
+                    ),
+                  );
+
+                  // Keep candidates trimmed to top 30
+                  if (candidates.length > 50) {
+                    candidates.sort((a, b) => b.size.compareTo(a.size));
+                    candidates.removeRange(30, candidates.length);
+                  }
+                } catch (_) {}
               }
             } catch (_) {}
           }
         }
 
-        _imagesSize = imgBytes;
-        _videosSize = vidBytes;
-        _audioSize = audBytes;
-        _docsSize = docBytes;
+        // Sort candidates
+        candidates.sort((a, b) => b.size.compareTo(a.size));
+        _largestFiles = candidates.take(30).toList();
+
+        // Build folder space tiles for Treemap Space Map
+        final List<FolderSpaceTile> tiles = [];
+        int totalFoldersSize = 0;
+        topFolderSizes.forEach((_, s) => totalFoldersSize += s);
+
+        topFolderSizes.forEach((folderPath, size) {
+          if (size > 0) {
+            final folderName = p.basename(folderPath);
+            final style = _getFolderStyle(folderName);
+            final double proportion =
+                totalFoldersSize > 0 ? (size / totalFoldersSize) : 0.0;
+
+            tiles.add(
+              FolderSpaceTile(
+                name: folderName,
+                path: folderPath,
+                size: size,
+                color: style.color,
+                icon: style.icon,
+                proportion: proportion,
+              ),
+            );
+          }
+        });
+
+        tiles.sort((a, b) => b.size.compareTo(a.size));
+        _folderTiles = tiles;
       }
     } catch (_) {}
-
-    // Adjust system/other size
-    final double calculatedUsed = (_appsSize + _imagesSize + _videosSize + _audioSize + _docsSize).toDouble();
-    _systemSize = max(0, _totalUsedSize - calculatedUsed.toInt());
 
     if (mounted) {
       setState(() {
         _isScanning = false;
       });
-      _radialController.forward();
+      _radialController.forward(from: 0.0);
+    }
+  }
+
+  _FolderStyle _getFolderStyle(String name) {
+    final lower = name.toLowerCase();
+    if (lower == 'dcim' || lower.contains('camera')) {
+      return _FolderStyle(const Color(0xFF8B5CF6), Broken.camera);
+    } else if (lower == 'download' || lower == 'downloads') {
+      return _FolderStyle(const Color(0xFF3B82F6), Broken.document_download);
+    } else if (lower == 'pictures' || lower == 'photos') {
+      return _FolderStyle(const Color(0xFFEC4899), Broken.gallery);
+    } else if (lower == 'movies' || lower == 'videos') {
+      return _FolderStyle(const Color(0xFFEF4444), Broken.video);
+    } else if (lower == 'music' || lower == 'audio') {
+      return _FolderStyle(const Color(0xFFF97316), Broken.music);
+    } else if (lower == 'documents' || lower == 'docs') {
+      return _FolderStyle(const Color(0xFF06B6D4), Broken.document);
+    } else if (lower == 'android') {
+      return _FolderStyle(const Color(0xFF10B981), Broken.mobile);
+    } else if (lower.contains('telegram')) {
+      return _FolderStyle(const Color(0xFF0EA5E9), Broken.message);
+    } else if (lower.contains('whatsapp')) {
+      return _FolderStyle(const Color(0xFF22C55E), Broken.call);
+    }
+    return _FolderStyle(const Color(0xFF64748B), Broken.folder_2);
+  }
+
+  Future<void> _openFile(LargestFileItem item) async {
+    try {
+      final provider = context.read<FileManagerProvider>();
+      await provider.openFile(context, item.path);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open file: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _shareFile(LargestFileItem item) async {
+    await FolderShareService.sharePaths(context, [item.path]);
+  }
+
+  Future<void> _batchShareFiles(List<LargestFileItem> items) async {
+    if (items.isEmpty) return;
+    await FolderShareService.sharePaths(
+      context,
+      items.map((e) => e.path).toList(),
+    );
+  }
+
+  Future<void> _deleteFile(LargestFileItem item) async {
+    final confirm = await FileActionDialogs.showConfirmDialog(
+      context,
+      title: 'Delete File',
+      content: 'Are you sure you want to delete "${item.name}"? This action cannot be undone.',
+    );
+
+    if (confirm && mounted) {
+      try {
+        final f = File(item.path);
+        if (f.existsSync()) {
+          f.deleteSync();
+        }
+        setState(() {
+          _largestFiles.removeWhere((e) => e.path == item.path);
+          final cat = _getCategoryForExtension(item.extension);
+          cat.size = max(0, cat.size - item.size);
+          cat.count = max(0, cat.count - 1);
+          _totalScannedBytes = max(0, _totalScannedBytes - item.size);
+        });
+        context.read<FileManagerProvider>().updateStorageSpace();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Deleted "${item.name}"')),
+        );
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete file: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _batchDeleteFiles(List<LargestFileItem> items) async {
+    if (items.isEmpty) return;
+    final confirm = await FileActionDialogs.showConfirmDialog(
+      context,
+      title: 'Delete ${items.length} Files',
+      content: 'Are you sure you want to delete these ${items.length} files? This action cannot be undone.',
+    );
+
+    if (confirm && mounted) {
+      int deletedCount = 0;
+      final deletedPaths = <String>{};
+
+      for (final item in items) {
+        try {
+          final f = File(item.path);
+          if (f.existsSync()) {
+            f.deleteSync();
+            deletedCount++;
+            deletedPaths.add(item.path);
+            final cat = _getCategoryForExtension(item.extension);
+            cat.size = max(0, cat.size - item.size);
+            cat.count = max(0, cat.count - 1);
+            _totalScannedBytes = max(0, _totalScannedBytes - item.size);
+          }
+        } catch (_) {}
+      }
+
+      setState(() {
+        _largestFiles.removeWhere((e) => deletedPaths.contains(e.path));
+      });
+      context.read<FileManagerProvider>().updateStorageSpace();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Successfully deleted $deletedCount files')),
+      );
+    }
+  }
+
+  void _onCategoryTap(StorageCategoryInfo cat) {
+    if (cat.id == 'apps') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AppManagerScreen()),
+      );
+    } else if (cat.mediaType != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MediaCategoryScreen(mediaType: cat.mediaType!),
+        ),
+      );
     }
   }
 
@@ -149,6 +464,11 @@ class _StorageAnalyzerScreenState extends State<StorageAnalyzerScreen> with Sing
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isScoped = widget.initialVolumePath != null &&
+        widget.initialVolumePath != '/storage/emulated/0';
+    final title = isScoped
+        ? '${p.basename(widget.initialVolumePath!)} Analytics'
+        : 'Storage Analytics';
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -160,7 +480,7 @@ class _StorageAnalyzerScreenState extends State<StorageAnalyzerScreen> with Sing
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Storage Analytics',
+          title,
           style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -171,7 +491,9 @@ class _StorageAnalyzerScreenState extends State<StorageAnalyzerScreen> with Sing
           ),
         ],
       ),
-      body: _isScanning ? _buildScanningView(theme, isDark) : _buildAnalyticsView(theme, isDark),
+      body: _isScanning
+          ? _buildScanningView(theme, isDark)
+          : _buildAnalyticsDashboard(theme, isDark),
     );
   }
 
@@ -186,24 +508,24 @@ class _StorageAnalyzerScreenState extends State<StorageAnalyzerScreen> with Sing
               alignment: Alignment.center,
               children: [
                 SizedBox(
-                  width: 130,
-                  height: 130,
+                  width: 140,
+                  height: 140,
                   child: CircularProgressIndicator(
-                    strokeWidth: 4,
-                    backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                    strokeWidth: 4.5,
+                    backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
                     valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
                   ),
                 ),
                 Container(
-                  width: 90,
-                  height: 90,
+                  width: 95,
+                  height: 95,
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primary.withOpacity(0.08),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Broken.document_filter,
-                    size: 38,
+                    size: 42,
                     color: theme.colorScheme.primary,
                   ),
                 ),
@@ -211,16 +533,16 @@ class _StorageAnalyzerScreenState extends State<StorageAnalyzerScreen> with Sing
             ),
             const SizedBox(height: 32),
             Text(
-              'Scanning Device Storage',
+              'Analyzing Device Storage',
               style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
-              'Analyzing files, categorizing assets, and reading installed apps space...',
+              'Computing category distribution, building visual Space Map, and identifying largest files...',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
-                fontSize: 14,
+                color: theme.textTheme.bodySmall?.color?.withOpacity(0.65),
+                fontSize: 13.5,
               ),
             ),
             const SizedBox(height: 24),
@@ -229,7 +551,7 @@ class _StorageAnalyzerScreenState extends State<StorageAnalyzerScreen> with Sing
               decoration: BoxDecoration(
                 color: theme.colorScheme.surfaceVariant.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: theme.dividerColor.withOpacity(0.05)),
+                border: Border.all(color: theme.dividerColor.withOpacity(0.08)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -255,24 +577,38 @@ class _StorageAnalyzerScreenState extends State<StorageAnalyzerScreen> with Sing
                 ],
               ),
             ),
+            if (_scannedFilesCount > 0) ...[
+              const SizedBox(height: 12),
+              Text(
+                '$_scannedFilesCount files scanned',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: theme.textTheme.bodySmall?.color?.withOpacity(0.5),
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAnalyticsView(ThemeData theme, bool isDark) {
-    final double usedPercent = _totalStorageSize > 0 ? (_totalUsedSize / _totalStorageSize) * 100 : 0.0;
+  Widget _buildAnalyticsDashboard(ThemeData theme, bool isDark) {
     final int freeSize = max(0, _totalStorageSize - _totalUsedSize);
+    final double usedPercent = _totalStorageSize > 0
+        ? (_totalUsedSize / _totalStorageSize) * 100
+        : 0.0;
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Circular progress card
+          // 1. Overall Storage Summary Header Card
           Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(24),
@@ -287,48 +623,47 @@ class _StorageAnalyzerScreenState extends State<StorageAnalyzerScreen> with Sing
             ),
             child: Row(
               children: [
-                // Custom Radial Chart Painter
+                // Radial ring painter
                 AnimatedBuilder(
                   animation: _radialController,
                   builder: (context, child) {
                     return SizedBox(
-                      width: 110,
-                      height: 110,
+                      width: 100,
+                      height: 100,
                       child: CustomPaint(
-                        painter: StorageRadialPainter(
-                          apps: _appsSize,
-                          images: _imagesSize,
-                          videos: _videosSize,
-                          audio: _audioSize,
-                          docs: _docsSize,
-                          system: _systemSize,
-                          total: _totalStorageSize,
+                        painter: StorageSummaryRingPainter(
+                          usedBytes: _totalUsedSize,
+                          totalBytes: _totalStorageSize,
                           animationVal: _radialController.value,
                           isDark: isDark,
+                          primaryColor: theme.colorScheme.primary,
                         ),
                       ),
                     );
                   },
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 18),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Total Storage',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5),
+                        'Total Internal Space',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: theme.textTheme.bodySmall?.color?.withOpacity(0.55),
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        FileUtils.formatBytes(_totalStorageSize, 2),
+                        FileUtils.formatBytes(_totalStorageSize, 1),
                         style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       Row(
                         children: [
                           Container(
@@ -336,14 +671,17 @@ class _StorageAnalyzerScreenState extends State<StorageAnalyzerScreen> with Sing
                             height: 8,
                             decoration: const BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Color(0xFF10B981), // Green free space
+                              color: Color(0xFF10B981),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 7),
                           Expanded(
                             child: Text(
-                              '${FileUtils.formatBytes(freeSize, 2)} free',
-                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5),
+                              '${FileUtils.formatBytes(freeSize, 1)} Free',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12.5,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -358,14 +696,17 @@ class _StorageAnalyzerScreenState extends State<StorageAnalyzerScreen> with Sing
                             height: 8,
                             decoration: const BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Color(0xFFEF4444), // Red used space
+                              color: Color(0xFFEF4444),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 7),
                           Expanded(
                             child: Text(
-                              '${FileUtils.formatBytes(_totalUsedSize, 2)} used (${usedPercent.toStringAsFixed(1)}%)',
-                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5),
+                              '${FileUtils.formatBytes(_totalUsedSize, 1)} Used (${usedPercent.toStringAsFixed(1)}%)',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12.5,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -379,224 +720,65 @@ class _StorageAnalyzerScreenState extends State<StorageAnalyzerScreen> with Sing
             ),
           ),
 
-          // Categories Breakdown Title
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-            child: Row(
-              children: [
-                Text(
-                  'Breakdown',
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                ),
-              ],
+          // 2. Component 1: Category Segmented Breakdown Bar
+          CategorySegmentedBar(
+            categories: _categories,
+            totalStorage: _totalStorageSize,
+            usedStorage: _totalScannedBytes,
+            animationValue: _radialController.value,
+            onCategoryTap: _onCategoryTap,
+          ),
+
+          // 3. Component 2: Interactive "Space Map" (Treemap Grid)
+          if (_folderTiles.isNotEmpty)
+            StorageTreemapWidget(
+              folderTiles: _folderTiles,
             ),
+
+          // 4. Component 3: Wavy/Animated Progress Category List
+          WavyCategoryList(
+            categories: _categories,
+            totalStorage: _totalStorageSize,
+            usedStorage: _totalScannedBytes,
+            onCategoryTap: _onCategoryTap,
           ),
 
-          // Category items
-          _buildCategoryCard(
-            context: context,
-            title: 'Applications',
-            size: _appsSize,
-            color: const Color(0xFFEC4899), // Pink
-            icon: Broken.mobile,
-            theme: theme,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AppManagerScreen()),
-              );
-            },
+          // 5. Component 4: Largest Files Quick-Action List
+          LargestFilesList(
+            files: _largestFiles,
+            onOpenFile: _openFile,
+            onShareFile: _shareFile,
+            onDeleteFile: _deleteFile,
+            onBatchShare: _batchShareFiles,
+            onBatchDelete: _batchDeleteFiles,
           ),
-          _buildCategoryCard(
-            context: context,
-            title: 'Images',
-            size: _imagesSize,
-            color: const Color(0xFF8B5CF6), // Violet
-            icon: Broken.image,
-            theme: theme,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const MediaCategoryScreen(mediaType: MediaType.images),
-                ),
-              );
-            },
-          ),
-          _buildCategoryCard(
-            context: context,
-            title: 'Videos',
-            size: _videosSize,
-            color: const Color(0xFFEF4444), // Red
-            icon: Broken.video,
-            theme: theme,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const MediaCategoryScreen(mediaType: MediaType.videos),
-                ),
-              );
-            },
-          ),
-          _buildCategoryCard(
-            context: context,
-            title: 'Audio',
-            size: _audioSize,
-            color: const Color(0xFFF97316), // Orange
-            icon: Broken.music,
-            theme: theme,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const MediaCategoryScreen(mediaType: MediaType.audios),
-                ),
-              );
-            },
-          ),
-          _buildCategoryCard(
-            context: context,
-            title: 'Documents',
-            size: _docsSize,
-            color: const Color(0xFF3B82F6), // Blue
-            icon: Broken.document,
-            theme: theme,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const MediaCategoryScreen(mediaType: MediaType.documents),
-                ),
-              );
-            },
-          ),
-          _buildCategoryCard(
-            context: context,
-            title: 'System / Other',
-            size: _systemSize,
-            color: const Color(0xFF64748B), // Slate
-            icon: Broken.category_2,
-            theme: theme,
-            onTap: () {}, // No viewer for system/other
-          ),
-          
-          const SizedBox(height: 32),
+
+          const SizedBox(height: 36),
         ],
-      ),
-    );
-  }
-
-  Widget _buildCategoryCard({
-    required BuildContext context,
-    required String title,
-    required int size,
-    required Color color,
-    required IconData icon,
-    required ThemeData theme,
-    required VoidCallback onTap,
-  }) {
-    final double proportion = _totalStorageSize > 0 ? (size / _totalStorageSize) : 0.0;
-    final String percentStr = (proportion * 100).toStringAsFixed(1);
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor.withOpacity(0.06)),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: color, size: 22),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          title,
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
-                        ),
-                        Text(
-                          FileUtils.formatBytes(size, 2),
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: proportion,
-                        backgroundColor: color.withOpacity(0.1),
-                        valueColor: AlwaysStoppedAnimation<Color>(color),
-                        minHeight: 5,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$percentStr% of total storage',
-                      style: TextStyle(
-                        color: theme.textTheme.bodySmall?.color?.withOpacity(0.5),
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (title != 'System / Other') ...[
-                const SizedBox(width: 12),
-                Icon(
-                  Broken.arrow_right_3,
-                  size: 16,
-                  color: theme.textTheme.bodySmall?.color?.withOpacity(0.4),
-                ),
-              ],
-            ],
-          ),
-        ),
       ),
     );
   }
 }
 
-class StorageRadialPainter extends CustomPainter {
-  final int apps;
-  final int images;
-  final int videos;
-  final int audio;
-  final int docs;
-  final int system;
-  final int total;
+class _FolderStyle {
+  final Color color;
+  final IconData icon;
+  const _FolderStyle(this.color, this.icon);
+}
+
+class StorageSummaryRingPainter extends CustomPainter {
+  final int usedBytes;
+  final int totalBytes;
   final double animationVal;
   final bool isDark;
+  final Color primaryColor;
 
-  StorageRadialPainter({
-    required this.apps,
-    required this.images,
-    required this.videos,
-    required this.audio,
-    required this.docs,
-    required this.system,
-    required this.total,
+  StorageSummaryRingPainter({
+    required this.usedBytes,
+    required this.totalBytes,
     required this.animationVal,
     required this.isDark,
+    required this.primaryColor,
   });
 
   @override
@@ -606,42 +788,35 @@ class StorageRadialPainter extends CustomPainter {
     final Rect rect = Rect.fromCircle(center: Offset(center, center), radius: radius);
 
     final Paint trackPaint = Paint()
-      ..color = isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05)
+      ..color = isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 14;
+      ..strokeWidth = 10;
 
     canvas.drawCircle(Offset(center, center), radius, trackPaint);
 
-    if (total == 0) return;
+    if (totalBytes <= 0) return;
 
-    final double factor = animationVal * 2 * pi;
-    double startAngle = -pi / 2;
+    final double ratio = (usedBytes / totalBytes).clamp(0.0, 1.0);
+    final double sweepAngle = ratio * 2 * pi * animationVal;
 
-    void drawSegment(int segmentSize, Color color) {
-      if (segmentSize <= 0) return;
-      final double sweepAngle = (segmentSize / total) * factor;
+    final Paint usedPaint = Paint()
+      ..shader = SweepGradient(
+        startAngle: -pi / 2,
+        endAngle: 3 * pi / 2,
+        colors: [
+          primaryColor,
+          const Color(0xFFEF4444),
+        ],
+      ).createShader(rect)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 10
+      ..strokeCap = StrokeCap.round;
 
-      final Paint segmentPaint = Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 14
-        ..strokeCap = StrokeCap.round;
-
-      canvas.drawArc(rect, startAngle, sweepAngle, false, segmentPaint);
-      startAngle += sweepAngle;
-    }
-
-    // Draw in order of categories
-    drawSegment(apps, const Color(0xFFEC4899));
-    drawSegment(images, const Color(0xFF8B5CF6));
-    drawSegment(videos, const Color(0xFFEF4444));
-    drawSegment(audio, const Color(0xFFF97316));
-    drawSegment(docs, const Color(0xFF3B82F6));
-    drawSegment(system, const Color(0xFF64748B));
+    canvas.drawArc(rect, -pi / 2, sweepAngle, false, usedPaint);
   }
 
   @override
-  bool shouldRepaint(covariant StorageRadialPainter oldDelegate) {
+  bool shouldRepaint(covariant StorageSummaryRingPainter oldDelegate) {
     return oldDelegate.animationVal != animationVal;
   }
 }

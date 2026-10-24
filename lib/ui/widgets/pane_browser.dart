@@ -26,6 +26,7 @@ import 'selection_context_bottom_sheet.dart';
 import 'file_action_dialogs.dart';
 import 'create_archive_dialog.dart';
 import 'batch_rename_dialog.dart';
+import 'folder_customization_dialog.dart';
 
 class PaneBrowser extends StatefulWidget {
   final int tabIndex;
@@ -101,6 +102,9 @@ class _PaneBrowserState extends State<PaneBrowser> {
     final provider = context.read<FileManagerProvider>();
     _activatePane(provider);
     switch (action) {
+      case 'customize_folder':
+        await FolderCustomizationDialog.show(context, path);
+        break;
       case 'archive':
         final res = await CreateArchiveDialog.show(
           context,
@@ -550,15 +554,18 @@ class _PaneBrowserState extends State<PaneBrowser> {
                                           ),
                                         )
                                       else
-                                        SliverPadding(
-                                          padding: EdgeInsets.only(
-                                            bottom: 80,
-                                            left: provider.isGridView ? 8 : 0,
-                                            right: provider.isGridView ? 8 : 0,
-                                            top: 8,
-                                          ),
-                                          sliver: provider.isGridView
-                                              ? SliverGrid(
+                                        Builder(
+                                          builder: (context) {
+                                            final isFolderGrid = provider.getViewModeForPath(tab.currentPath);
+                                            return SliverPadding(
+                                              padding: EdgeInsets.only(
+                                                bottom: 80,
+                                                left: isFolderGrid ? 8 : 0,
+                                                right: isFolderGrid ? 8 : 0,
+                                                top: 8,
+                                              ),
+                                              sliver: isFolderGrid
+                                                  ? SliverGrid(
                                                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                                     crossAxisCount: (MediaQuery.of(context).size.width / (2 * 110 * provider.iconScale)).floor().clamp(1, 3),
                                                     mainAxisSpacing: (8 * provider.itemPaddingMultiplier).clamp(4.0, 16.0),
@@ -662,6 +669,8 @@ class _PaneBrowserState extends State<PaneBrowser> {
                                                     childCount: tab.displayFiles.length,
                                                   ),
                                                 ),
+                                            );
+                                          },
                                         ),
                                       ],
                                     );

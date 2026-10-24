@@ -96,18 +96,16 @@ class NFileDrawer extends StatelessWidget {
                       title: 'Global Search',
                       onTap: () {
                         Navigator.pop(context);
-                        onNavigateTab?.call(1);
-                        final provider = context.read<FileManagerProvider>();
-                        if (!provider.activeTab.isSearchActive) {
-                          provider.toggleSearchForActiveTab();
-                        }
-                        provider.activeTab.currentPath = '/storage/emulated/0';
-                        provider.executeSearchForTab(
-                          provider.activeTabIndex,
-                          '',
-                          'All',
-                          context.read<MediaProvider>(),
-                        );
+                        onNavigateTab?.call(2);
+                      },
+                    ),
+                    _buildDrawerTile(
+                      context,
+                      icon: Broken.element_3,
+                      title: 'Tools & Utilities',
+                      onTap: () {
+                        Navigator.pop(context);
+                        onNavigateTab?.call(3);
                       },
                     ),
                     _buildDrawerTile(

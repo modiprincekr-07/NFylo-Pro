@@ -84,6 +84,15 @@ dependencies:
   audio_service: ^0.18.17
   device_info_plus: ^12.4.0
   qr_flutter: ^4.1.0
+  image: ^4.3.0
+  syncfusion_flutter_pdf: ^33.2.6
+  ffmpeg_kit_flutter: ^6.0.3
+  record: ^5.2.0
+  image_picker: ^1.1.2
+  just_audio: ^0.10.5
+  http: ^1.2.0
+  google_sign_in: ^6.2.1
+  googleapis: ^13.1.0
 
 dev_dependencies:
   flutter_test:

@@ -40,6 +40,12 @@ class FolderItem extends StatelessWidget {
     final theme = Theme.of(context);
     final folderIconOption = context.select<FileManagerProvider, String>((p) => p.folderIconOption);
     final useMaterialIcons = context.select<FileManagerProvider, bool>((p) => p.useMaterialIcons);
+    final customFolderColor = context.select<FileManagerProvider, Color?>((p) => p.getFolderColor(folder.path));
+    final customFolderIconKey = context.select<FileManagerProvider, String?>((p) => p.getFolderCustomIcon(folder.path));
+    final effectiveFolderColor = customFolderColor ?? theme.colorScheme.primary;
+    final folderIconData = FileUtils.getNamedFolderIcon(customFolderIconKey, useMaterial: useMaterialIcons) ??
+        FileUtils.getFolderIcon(folderIconOption, useMaterial: useMaterialIcons);
+
     final isHighlighted = context.select<FileManagerProvider, bool>(
       (p) => p.forceHighlightedPaths.contains(folder.path) || (p.enableFolderHighlight && p.highlightedPaths.contains(folder.path)),
     );
@@ -56,7 +62,7 @@ class FolderItem extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isSelected ? theme.colorScheme.primary : theme.dividerColor.withOpacity(0.1),
+          color: isSelected ? effectiveFolderColor : theme.dividerColor.withOpacity(0.1),
           width: isSelected ? 1.5 : 1.0,
         ),
       ),
@@ -74,7 +80,7 @@ class FolderItem extends StatelessWidget {
                   width: 48 * iconScale,
                   height: 48 * iconScale,
                   decoration: BoxDecoration(
-                    color: isSelected ? theme.colorScheme.primary : theme.colorScheme.primary.withOpacity(0.1),
+                    color: isSelected ? effectiveFolderColor : effectiveFolderColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: (() {
@@ -95,8 +101,8 @@ class FolderItem extends StatelessWidget {
                                   height: 38 * iconScale,
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, __, ___) => Icon(
-                                    FileUtils.getFolderIcon(folderIconOption, useMaterial: useMaterialIcons),
-                                    color: theme.colorScheme.primary,
+                                    folderIconData,
+                                    color: effectiveFolderColor,
                                     size: 28 * iconScale,
                                   ),
                                 ),
@@ -104,8 +110,8 @@ class FolderItem extends StatelessWidget {
                             );
                           }
                           return Icon(
-                            FileUtils.getFolderIcon(folderIconOption, useMaterial: useMaterialIcons),
-                            color: theme.colorScheme.primary,
+                            folderIconData,
+                            color: effectiveFolderColor,
                             size: 28 * iconScale,
                           );
                         },
@@ -113,8 +119,8 @@ class FolderItem extends StatelessWidget {
                     }
 
                     return Icon(
-                      isSelected ? FileUtils.getAdaptiveIcon(Broken.tick_circle, useMaterialIcons) : FileUtils.getFolderIcon(folderIconOption, useMaterial: useMaterialIcons),
-                      color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.primary,
+                      isSelected ? FileUtils.getAdaptiveIcon(Broken.tick_circle, useMaterialIcons) : folderIconData,
+                      color: isSelected ? theme.colorScheme.onPrimary : effectiveFolderColor,
                       size: 28 * iconScale,
                     );
                   })(),
@@ -245,6 +251,7 @@ class FolderItem extends StatelessWidget {
                       const PopupMenuItem(value: 'archive', child: Row(children: [NfileIcon(Broken.box_add, size: 20), SizedBox(width: 12), Text('Archive', style: TextStyle(fontWeight: FontWeight.w500))])),
                       const PopupMenuItem(value: 'copy', child: Row(children: [NfileIcon(Broken.document_copy, size: 20), SizedBox(width: 12), Text('Copy', style: TextStyle(fontWeight: FontWeight.w500))])),
                       const PopupMenuItem(value: 'cut', child: Row(children: [NfileIcon(Broken.scissor, size: 20), SizedBox(width: 12), Text('Cut', style: TextStyle(fontWeight: FontWeight.w500))])),
+                      const PopupMenuItem(value: 'customize_folder', child: Row(children: [NfileIcon(Broken.brush_2, size: 20), SizedBox(width: 12), Text('Customize Folder', style: TextStyle(fontWeight: FontWeight.w500))])),
                       const PopupMenuItem(value: 'rename', child: Row(children: [NfileIcon(Broken.edit, size: 20), SizedBox(width: 12), Text('Rename', style: TextStyle(fontWeight: FontWeight.w500))])),
                       const PopupMenuItem(
                         value: 'delete',

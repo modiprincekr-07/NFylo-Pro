@@ -1153,7 +1153,7 @@ class GeneralSettingsScreen extends StatelessWidget {
             SettingsTile(
               icon: Broken.menu_1,
               title: 'Hide Bottom Navigation Labels',
-              subtitle: 'Hide text labels of the bottom bar (Home/Browse) for a cleaner and compact look',
+              subtitle: 'Hide text labels of the bottom bar (Home/Browse/Search/Tools) for a cleaner and compact look',
               trailing: Transform.scale(
                 scale: 0.85,
                 child: Switch(
@@ -1163,6 +1163,12 @@ class GeneralSettingsScreen extends StatelessWidget {
                 ),
               ),
               onTap: () => fileManager.toggleHideNavLabels(),
+            ),
+            SettingsTile(
+              icon: Broken.element_3,
+              title: 'Customize Home Screen Sections',
+              subtitle: 'Reorder or hide sections on the Home dashboard',
+              onTap: () => _showHomeSectionsDialog(context, fileManager, theme),
             ),
             SettingsTile(
               icon: Icons.android,
@@ -1321,6 +1327,12 @@ class AppearanceSettingsScreen extends StatelessWidget {
               onTap: () => _showFontFamilyPickerDialog(context, fileManager, theme),
             ),
             SettingsTile(
+              icon: Broken.box,
+              title: 'Icon Pack Selector',
+              subtitle: _getIconPackLabel(fileManager.iconPack),
+              onTap: () => _showIconPackPickerDialog(context, fileManager, theme),
+            ),
+            SettingsTile(
               icon: Broken.setting,
               title: 'Use Expressive Material Icons',
               subtitle: 'Replace custom Broken icons with standard Material Design icons',
@@ -1445,6 +1457,20 @@ class ExplorerSettingsScreen extends StatelessWidget {
                 ),
               ),
               onTap: () => fileManager.toggleSplitScreen(),
+            ),
+            SettingsTile(
+              icon: Icons.tablet_android_rounded,
+              title: 'Auto Dual-Pane in Landscape / Tablet',
+              subtitle: 'Automatically activate dual-pane split view when in landscape or on a tablet',
+              trailing: Transform.scale(
+                scale: 0.85,
+                child: Switch(
+                  value: fileManager.dualPaneAutoLandscape,
+                  activeColor: theme.colorScheme.primary,
+                  onChanged: (_) => fileManager.toggleDualPaneAutoLandscape(),
+                ),
+              ),
+              onTap: () => fileManager.toggleDualPaneAutoLandscape(),
             ),
             SettingsTile(
               icon: Broken.folder_connection,
@@ -2740,6 +2766,208 @@ void _showAutoDeleteDaysPickerDialog(BuildContext context, ThemeData theme, Void
             ],
           ),
         ),
+      );
+    },
+  );
+}
+
+String _getIconPackLabel(String val) {
+  switch (val) {
+    case 'material': return 'Expressive Material 3 (Google)';
+    case 'solar': return 'Solar Dual-Tone Icons';
+    case 'rounded': return 'Soft Rounded (Modern)';
+    case 'outlined': return 'Minimalist Outlines';
+    case 'broken':
+    default:
+      return 'NFile Broken Icons (Default)';
+  }
+}
+
+void _showIconPackPickerDialog(BuildContext context, FileManagerProvider fileManager, ThemeData theme) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: theme.scaffoldBackgroundColor,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    builder: (ctx) {
+      final current = fileManager.iconPack;
+      final options = [
+        {'key': 'broken', 'name': 'NFile Broken Icons (Default)', 'icon': Broken.folder, 'desc': 'Original broken outline design'},
+        {'key': 'material', 'name': 'Expressive Material 3', 'icon': Icons.folder, 'desc': 'Google Material Design 3 system icons'},
+        {'key': 'solar', 'name': 'Solar Dual-Tone Icons', 'icon': Icons.folder_special, 'desc': 'Duotone modern aesthetic style'},
+        {'key': 'rounded', 'name': 'Soft Rounded UI', 'icon': Icons.folder_rounded, 'desc': 'Curved and soft interface icons'},
+        {'key': 'outlined', 'name': 'Minimalist Outlines', 'icon': Icons.folder_outlined, 'desc': 'Clean and light line art icons'},
+      ];
+
+      return SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2))),
+                  ),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text('Icon Pack Selector', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(height: 16),
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: options.length,
+                    itemBuilder: (context, index) {
+                      final item = options[index];
+                      final isSelected = current == item['key'];
+                      return ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isSelected ? theme.colorScheme.primary.withOpacity(0.15) : theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(item['icon'] as IconData, color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface),
+                        ),
+                        title: Text(item['name'] as String, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w500)),
+                        subtitle: Text(item['desc'] as String, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withOpacity(0.6))),
+                        trailing: isSelected ? Icon(Icons.check_circle, color: theme.colorScheme.primary) : null,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        onTap: () {
+                          fileManager.setIconPack(item['key'] as String);
+                          Navigator.pop(ctx);
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+void _showHomeSectionsDialog(BuildContext context, FileManagerProvider fileManager, ThemeData theme) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: theme.scaffoldBackgroundColor,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    builder: (ctx) {
+      return StatefulBuilder(
+        builder: (context, setStateModal) {
+          final sections = fileManager.homeSectionOrder;
+          final visibility = fileManager.homeSectionVisibility;
+
+          final sectionMeta = {
+            'storage_overview': {'name': 'Storage Overview', 'desc': 'Storage cards and volume details', 'icon': Broken.chart},
+            'storage_shortcuts': {'name': 'Storage Shortcuts', 'desc': 'Storage Analyzer & Cleanup cards', 'icon': Broken.brush_2},
+            'quick_categories': {'name': 'Quick Categories', 'desc': 'Media category shortcuts grid', 'icon': Broken.category},
+            'recent_files': {'name': 'Recent Files', 'desc': 'Horizontal strip of recently opened files', 'icon': Broken.clock},
+          };
+
+          return SafeArea(
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              ),
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2))),
+                      ),
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Customize Sections', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                        child: Text(
+                          'Drag handle to reorder sections. Toggle switch to show or hide.',
+                          style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ReorderableListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: sections.length,
+                        onReorder: (oldIndex, newIndex) {
+                          fileManager.reorderHomeSection(oldIndex, newIndex);
+                          setStateModal(() {});
+                        },
+                        itemBuilder: (context, index) {
+                          final sectionKey = sections[index];
+                          final meta = sectionMeta[sectionKey] ?? {'name': sectionKey, 'desc': '', 'icon': Broken.element_3};
+                          final isVisible = visibility[sectionKey] ?? true;
+
+                          return ListTile(
+                            key: ValueKey(sectionKey),
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: isVisible ? theme.colorScheme.primary.withOpacity(0.12) : theme.colorScheme.surfaceVariant.withOpacity(0.4),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: NfileIcon(meta['icon'] as IconData, color: isVisible ? theme.colorScheme.primary : Colors.grey, size: 20),
+                            ),
+                            title: Text(meta['name'] as String, style: TextStyle(fontWeight: isVisible ? FontWeight.bold : FontWeight.normal)),
+                            subtitle: Text(meta['desc'] as String, style: const TextStyle(fontSize: 11)),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Switch(
+                                  value: isVisible,
+                                  activeColor: theme.colorScheme.primary,
+                                  onChanged: (_) {
+                                    fileManager.toggleHomeSectionVisibility(sectionKey);
+                                    setStateModal(() {});
+                                  },
+                                ),
+                                const SizedBox(width: 4),
+                                ReorderableDragStartListener(
+                                  index: index,
+                                  child: const Icon(Icons.drag_handle, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       );
     },
   );

@@ -16,6 +16,7 @@ class VaultLockScreen extends StatefulWidget {
 class _VaultLockScreenState extends State<VaultLockScreen> with SingleTickerProviderStateMixin {
   bool _isPasswordSet = false;
   bool _checkingPasswordStatus = true;
+  bool _isBiometricEnabled = false;
   
   // Setup Flow State
   bool _isConfirmMode = false;
@@ -46,13 +47,108 @@ class _VaultLockScreenState extends State<VaultLockScreen> with SingleTickerProv
 
   Future<void> _checkPasswordStatus() async {
     final isSet = await VaultService.isPasswordSet();
+    final bioEnabled = await VaultService.isBiometricEnabled();
     if (mounted) {
       setState(() {
         _isPasswordSet = isSet;
+        _isBiometricEnabled = bioEnabled;
         _checkingPasswordStatus = false;
         _message = isSet ? 'Enter PIN to Unlock Wallet' : 'Set your 4-digit Wallet PIN';
       });
+
+      if (isSet && bioEnabled) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) _promptBiometricUnlock();
+        });
+      }
     }
+  }
+
+  Future<void> _promptBiometricUnlock() async {
+    final pwd = await VaultService.getBiometricKey();
+    if (pwd == null || !mounted) return;
+
+    final theme = Theme.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: theme.scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.fingerprint_rounded,
+                    size: 56,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  'Biometric Authentication',
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Touch the fingerprint sensor or confirm to unlock Private Vault with AES-256',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Text('Use PIN'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          HapticFeedback.mediumImpact();
+                          _unlockWallet(pwd);
+                        },
+                        icon: const Icon(Icons.fingerprint_rounded, size: 20),
+                        label: const Text('Authenticate'),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _onKeyPress(String key) {
@@ -324,11 +420,17 @@ class _VaultLockScreenState extends State<VaultLockScreen> with SingleTickerProv
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildActionKeyButton(
-                icon: Icons.clear_rounded,
-                onPressed: _onClear,
-                tooltip: 'Clear All',
-              ),
+              _isPasswordSet && _isBiometricEnabled
+                  ? _buildActionKeyButton(
+                      icon: Icons.fingerprint_rounded,
+                      onPressed: _promptBiometricUnlock,
+                      tooltip: 'Unlock with Biometrics',
+                    )
+                  : _buildActionKeyButton(
+                      icon: Icons.clear_rounded,
+                      onPressed: _onClear,
+                      tooltip: 'Clear All',
+                    ),
               _buildKeyButton('0'),
               _buildActionKeyButton(
                 icon: Icons.backspace_rounded,

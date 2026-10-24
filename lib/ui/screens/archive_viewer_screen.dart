@@ -52,15 +52,33 @@ class _ArchiveViewerScreenState extends State<ArchiveViewerScreen> {
   String get _archiveName => p.basename(widget.archivePath);
   bool get isSelectionMode => _selectedInternalPaths.isNotEmpty;
 
+  String? _archivePassword;
+
   @override
   void initState() {
     super.initState();
     _loadArchive();
   }
 
-  Future<void> _loadArchive() async {
+  Future<void> _loadArchive({String? password}) async {
     setState(() => _isLoading = true);
-    final arch = await ArchiveService.readArchive(widget.archivePath);
+    final isProtected = ArchiveService.isPasswordProtected(widget.archivePath);
+    String? pwd = password ?? _archivePassword;
+
+    if (isProtected && (pwd == null || pwd.isEmpty)) {
+      pwd = await _promptPasswordDialog();
+      _archivePassword = pwd;
+    }
+
+    var arch = await ArchiveService.readArchive(widget.archivePath, password: pwd);
+    if ((arch == null || arch.isEmpty) && pwd == null && mounted) {
+      pwd = await _promptPasswordDialog();
+      if (pwd != null && pwd.isNotEmpty) {
+        _archivePassword = pwd;
+        arch = await ArchiveService.readArchive(widget.archivePath, password: pwd);
+      }
+    }
+
     if (mounted) {
       setState(() {
         _archive = arch;
@@ -68,6 +86,52 @@ class _ArchiveViewerScreenState extends State<ArchiveViewerScreen> {
         _selectedInternalPaths.clear();
       });
     }
+  }
+
+  Future<String?> _promptPasswordDialog() async {
+    final controller = TextEditingController();
+    bool obscure = true;
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Password Required'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('This archive is encrypted. Please enter password to view contents:'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                obscureText: obscure,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: 'Archive Password',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Broken.lock),
+                  suffixIcon: IconButton(
+                    icon: Icon(obscure ? Broken.eye_slash : Broken.eye),
+                    onPressed: () => setDialogState(() => obscure = !obscure),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, null),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, controller.text),
+              child: const Text('Unlock'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   List<ArchiveItem> get _currentItems {

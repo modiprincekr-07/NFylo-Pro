@@ -128,6 +128,38 @@ class ArchiveService {
     }
   }
 
+  /// Checks if an archive requires a password to read or extract.
+  static bool isPasswordProtected(String archivePath) {
+    try {
+      final file = File(archivePath);
+      if (!file.existsSync() || file.lengthSync() < 30) return false;
+      final raf = file.openSync(mode: FileMode.read);
+      final header = raf.readSync(30);
+      raf.closeSync();
+
+      // Check standard ZIP local header: 0x50 0x4B 0x03 0x04
+      if (header.length >= 8 &&
+          header[0] == 0x50 &&
+          header[1] == 0x4b &&
+          header[2] == 0x03 &&
+          header[3] == 0x04) {
+        final flags = (header[7] << 8) | header[6];
+        if ((flags & 0x01) != 0) return true; // Bit 0: Encrypted
+      }
+
+      // Check RAR header
+      if (header.length >= 7 &&
+          header[0] == 0x52 &&
+          header[1] == 0x61 &&
+          header[2] == 0x72 &&
+          header[3] == 0x21) {
+        // RAR header flags
+        return false;
+      }
+    } catch (_) {}
+    return false;
+  }
+
   /// Extracts an archive to the specified destination directory.
   static Future<void> extractArchive({
     required String archivePath,

@@ -633,4 +633,146 @@ class PreferencesService {
   static Future<void> saveExitOption(String val) async {
     await _prefs?.setString(_keyExitOption, val);
   }
+
+  // --- Recent Searches ---
+  static const String _keyRecentSearches = 'recent_searches';
+  static const int _maxRecentSearches = 20;
+
+  static List<String> getRecentSearches() {
+    return _prefs?.getStringList(_keyRecentSearches) ?? [];
+  }
+
+  static Future<void> addRecentSearch(String query) async {
+    final list = getRecentSearches();
+    list.remove(query);
+    list.insert(0, query);
+    if (list.length > _maxRecentSearches) {
+      list.removeRange(_maxRecentSearches, list.length);
+    }
+    await _prefs?.setStringList(_keyRecentSearches, list);
+  }
+
+  static Future<void> removeRecentSearch(String query) async {
+    final list = getRecentSearches();
+    list.remove(query);
+    await _prefs?.setStringList(_keyRecentSearches, list);
+  }
+
+  static Future<void> clearRecentSearches() async {
+    await _prefs?.remove(_keyRecentSearches);
+  }
+
+  // --- Home Section Order & Visibility ---
+  static const String _keyHomeSectionOrder = 'home_section_order';
+  static const String _keyHomeSectionVisibility = 'home_section_visibility';
+
+  static const List<String> defaultHomeSections = [
+    'storage_overview',
+    'storage_shortcuts',
+    'quick_categories',
+    'recent_files',
+  ];
+
+  static List<String> getHomeSectionOrder() {
+    return _prefs?.getStringList(_keyHomeSectionOrder) ?? List.from(defaultHomeSections);
+  }
+
+  static Future<void> saveHomeSectionOrder(List<String> order) async {
+    await _prefs?.setStringList(_keyHomeSectionOrder, order);
+  }
+
+  static Map<String, bool> getHomeSectionVisibility() {
+    final str = _prefs?.getString(_keyHomeSectionVisibility);
+    if (str == null) {
+      return {for (var s in defaultHomeSections) s: true};
+    }
+    try {
+      final map = jsonDecode(str) as Map<String, dynamic>;
+      final result = <String, bool>{};
+      for (var s in defaultHomeSections) {
+        result[s] = map[s] as bool? ?? true;
+      }
+      return result;
+    } catch (_) {
+      return {for (var s in defaultHomeSections) s: true};
+    }
+  }
+
+  static Future<void> saveHomeSectionVisibility(Map<String, bool> map) async {
+    await _prefs?.setString(_keyHomeSectionVisibility, jsonEncode(map));
+  }
+
+  // --- Dual Pane Auto Landscape ---
+  static const String _keyDualPaneAutoLandscape = 'dual_pane_auto_landscape';
+
+  static bool getDualPaneAutoLandscape() {
+    return _prefs?.getBool(_keyDualPaneAutoLandscape) ?? false;
+  }
+
+  static Future<void> saveDualPaneAutoLandscape(bool val) async {
+    await _prefs?.setBool(_keyDualPaneAutoLandscape, val);
+  }
+
+  // --- Per-Folder View Preferences ---
+  static const String _keyFolderViewModes = 'folder_view_modes';
+
+  static Map<String, bool> getFolderViewModes() {
+    final str = _prefs?.getString(_keyFolderViewModes);
+    if (str == null) return {};
+    try {
+      final map = jsonDecode(str) as Map<String, dynamic>;
+      return map.map((key, value) => MapEntry(key, value as bool));
+    } catch (_) {
+      return {};
+    }
+  }
+
+  static Future<void> saveFolderViewModes(Map<String, bool> map) async {
+    await _prefs?.setString(_keyFolderViewModes, jsonEncode(map));
+  }
+
+  // --- Per-Folder Colors & Custom Icons ---
+  static const String _keyFolderColors = 'folder_colors';
+  static const String _keyFolderCustomIcons = 'folder_custom_icons';
+
+  static Map<String, int> getFolderColors() {
+    final str = _prefs?.getString(_keyFolderColors);
+    if (str == null) return {};
+    try {
+      final map = jsonDecode(str) as Map<String, dynamic>;
+      return map.map((key, value) => MapEntry(key, value as int));
+    } catch (_) {
+      return {};
+    }
+  }
+
+  static Future<void> saveFolderColors(Map<String, int> map) async {
+    await _prefs?.setString(_keyFolderColors, jsonEncode(map));
+  }
+
+  static Map<String, String> getFolderCustomIcons() {
+    final str = _prefs?.getString(_keyFolderCustomIcons);
+    if (str == null) return {};
+    try {
+      final map = jsonDecode(str) as Map<String, dynamic>;
+      return map.map((key, value) => MapEntry(key, value as String));
+    } catch (_) {
+      return {};
+    }
+  }
+
+  static Future<void> saveFolderCustomIcons(Map<String, String> map) async {
+    await _prefs?.setString(_keyFolderCustomIcons, jsonEncode(map));
+  }
+
+  // --- Icon Pack Selector ---
+  static const String _keyIconPack = 'icon_pack';
+
+  static String getIconPack() {
+    return _prefs?.getString(_keyIconPack) ?? 'broken';
+  }
+
+  static Future<void> saveIconPack(String pack) async {
+    await _prefs?.setString(_keyIconPack, pack);
+  }
 }
