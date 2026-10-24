@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../core/icon_fonts/broken_icons.dart';
-import '../../services/ai_speech_service.dart';
+import '../../../core/icon_fonts/broken_icons.dart';
+import '../../../services/ai_speech_service.dart';
 
 class AiTtsScreen extends StatefulWidget {
   const AiTtsScreen({super.key});

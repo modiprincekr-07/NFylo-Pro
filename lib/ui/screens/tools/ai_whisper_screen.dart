@@ -4,8 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../core/icon_fonts/broken_icons.dart';
-import '../../services/ai_speech_service.dart';
+import '../../../core/icon_fonts/broken_icons.dart';
+import '../../../services/ai_speech_service.dart';
 
 class AiWhisperScreen extends StatefulWidget {
   final String? initialAudioPath;

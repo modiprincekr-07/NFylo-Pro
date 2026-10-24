@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:path_provider/path_provider.dart';
-import '../../core/icon_fonts/broken_icons.dart';
-import '../../services/ai_document_chat_service.dart';
+import '../../../core/icon_fonts/broken_icons.dart';
+import '../../../services/ai_document_chat_service.dart';
 
 class AiDocChatScreen extends StatefulWidget {
   final String? initialFilePath;

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../core/icon_fonts/broken_icons.dart';
-import '../../services/ai_plugin_manager_service.dart';
+import '../../../core/icon_fonts/broken_icons.dart';
+import '../../../services/ai_plugin_manager_service.dart';
 import 'ai_doc_chat_screen.dart';
 import 'ai_whisper_screen.dart';
 import 'ai_tts_screen.dart';
