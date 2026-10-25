@@ -67,7 +67,7 @@ class ToolsTabScreen extends StatelessWidget {
                     tooltip: 'About',
                     onPressed: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const AboutScreen()),
+                      MaterialPageRoute(builder: (_) => AboutScreen()),
                     ),
                   ),
                 ],
@@ -723,7 +723,7 @@ class ToolsTabScreen extends StatelessWidget {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const FTPServerScreen(),
+                          builder: (_) => FtpServerScreen(),
                         ),
                       ),
                     ),

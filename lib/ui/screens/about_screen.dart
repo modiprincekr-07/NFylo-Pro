@@ -3,6 +3,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/icon_fonts/broken_icons.dart';
 
+typedef AboutScreen = AboutNFileScreen;
+
 class AboutNFileScreen extends StatelessWidget {
   const AboutNFileScreen({super.key});
 

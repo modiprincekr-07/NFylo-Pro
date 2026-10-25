@@ -4,6 +4,8 @@ import '../../core/icon_fonts/broken_icons.dart';
 import '../../services/ftp_server_service.dart';
 import 'internal_file_picker_screen.dart';
 
+typedef FTPServerScreen = FtpServerScreen;
+
 class FtpServerScreen extends StatefulWidget {
   const FtpServerScreen({super.key});
 

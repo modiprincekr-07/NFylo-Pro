@@ -36,6 +36,7 @@ dependency_overrides:
     git:
       url: https://github.com/yekeskin/flutter_avif
       path: flutter_avif_android
+  record_platform_interface: 1.2.0
 
 dependencies:
   flutter:
@@ -87,7 +88,7 @@ dependencies:
   image: ^4.3.0
   syncfusion_flutter_pdf: ^33.2.6
   ffmpeg_kit_flutter: ^6.0.3-LTS
-  record: ^5.2.0
+  record: 5.2.0
   image_picker: ^1.1.2
   just_audio: ^0.10.5
   http: ^1.2.0
