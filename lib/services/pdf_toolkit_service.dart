@@ -65,7 +65,7 @@ class PdfToolkitService {
     );
   }
 
-  /// Merges multiple PDF files in the specified order into a single PDF.
+  /// Merges multiple PDF files in the specified order into a single PDF in an isolate.
   static Future<String> mergePdfs({
     required List<String> pdfPaths,
     String? outputName,
@@ -73,37 +73,42 @@ class PdfToolkitService {
     if (pdfPaths.length < 2) {
       throw Exception('Please select at least 2 PDF files to merge.');
     }
+    final outDir = _getOutputDir(_defaultPdfFolder).path;
+    return compute(_mergePdfsIsolate, {
+      'paths': pdfPaths,
+      'outDir': outDir,
+      'outputName': outputName,
+    });
+  }
 
-    final newDocument = PdfDocument();
-    newDocument.pageSettings.margins.all = 0;
+  /// Merges a list of PDF File objects in an isolate via compute().
+  static Future<String> mergePdfFiles(
+    List<File> files, {
+    String? outputName,
+  }) async {
+    return mergePdfs(
+      pdfPaths: files.map((f) => f.path).toList(),
+      outputName: outputName,
+    );
+  }
 
-    for (final pdfPath in pdfPaths) {
-      final file = File(pdfPath);
-      final bytes = await file.readAsBytes();
-      final loadedDoc = PdfDocument(inputBytes: bytes);
+  /// Splits a PDF file into two documents at the given splitPage (1-indexed) in an isolate.
+  static Future<List<String>> splitPdfAtPage(
+    File file,
+    int splitPage, {
+    String? outputDir,
+  }) async {
+    final targetDir = outputDir ?? _getOutputDir(_defaultPdfFolder).path;
+    return compute(_splitPdfIsolate, {
+      'path': file.path,
+      'splitPage': splitPage,
+      'outDir': targetDir,
+    });
+  }
 
-      for (int i = 0; i < loadedDoc.pages.count; i++) {
-        final originalPage = loadedDoc.pages[i];
-        final template = originalPage.createTemplate();
-        newDocument.pageSettings.size = originalPage.size;
-        final newPage = newDocument.pages.add();
-        newPage.graphics.drawPdfTemplate(template, Offset.zero);
-      }
-
-      loadedDoc.dispose();
-    }
-
-    final outDir = _getOutputDir(_defaultPdfFolder);
-    final safeName = (outputName == null || outputName.trim().isEmpty)
-        ? 'merged_${DateTime.now().millisecondsSinceEpoch}.pdf'
-        : '${outputName.replaceAll(RegExp(r'[\\/:*?"<>| ]'), '_')}.pdf';
-
-    final outPath = p.join(outDir.path, safeName);
-    final savedBytes = await newDocument.save();
-    newDocument.dispose();
-
-    await File(outPath).writeAsBytes(savedBytes);
-    return outPath;
+  /// Extracts all text from a PDF file in an isolate via compute().
+  static Future<String> extractText(File file) async {
+    return compute(_extractTextIsolate, file.path);
   }
 
   /// Splits or extracts specific pages from a PDF.
@@ -478,4 +483,106 @@ $spineItems
         .replaceAll('"', '&quot;')
         .replaceAll("'", '&#39;');
   }
+}
+
+// -------------------------------------------------------------
+// Top-Level / Static Isolate Functions for Zero UI-Freezing
+// -------------------------------------------------------------
+
+Future<String> _mergePdfsIsolate(Map<String, dynamic> params) async {
+  final List<String> paths = List<String>.from(params['paths']);
+  final String outDir = params['outDir'];
+  final String? outputName = params['outputName'];
+
+  final newDocument = PdfDocument();
+  newDocument.pageSettings.margins.all = 0;
+
+  for (final pdfPath in paths) {
+    final file = File(pdfPath);
+    final bytes = await file.readAsBytes();
+    final loadedDoc = PdfDocument(inputBytes: bytes);
+
+    for (int i = 0; i < loadedDoc.pages.count; i++) {
+      final originalPage = loadedDoc.pages[i];
+      final template = originalPage.createTemplate();
+      newDocument.pageSettings.size = originalPage.size;
+      final newPage = newDocument.pages.add();
+      newPage.graphics.drawPdfTemplate(template, Offset.zero);
+    }
+
+    loadedDoc.dispose();
+  }
+
+  final safeName = (outputName == null || outputName.trim().isEmpty)
+      ? 'merged_${DateTime.now().millisecondsSinceEpoch}.pdf'
+      : '${outputName.replaceAll(RegExp(r'[\\/:*?"<>| ]'), '_')}.pdf';
+
+  final outPath = p.join(outDir, safeName);
+  final savedBytes = await newDocument.save();
+  newDocument.dispose();
+
+  await File(outPath).writeAsBytes(savedBytes);
+  return outPath;
+}
+
+Future<List<String>> _splitPdfIsolate(Map<String, dynamic> params) async {
+  final String inputPath = params['path'];
+  final int splitPage = params['splitPage']; // 1-indexed split point
+  final String outDir = params['outDir'];
+
+  final file = File(inputPath);
+  final bytes = await file.readAsBytes();
+  final sourceDoc = PdfDocument(inputBytes: bytes);
+  final totalPages = sourceDoc.pages.count;
+
+  if (splitPage < 1 || splitPage >= totalPages) {
+    sourceDoc.dispose();
+    throw Exception('Split page must be between 1 and ${totalPages - 1}');
+  }
+
+  final base = p.basenameWithoutExtension(inputPath);
+  final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+  // Part 1: pages 0 to splitPage - 1
+  final doc1 = PdfDocument();
+  doc1.pageSettings.margins.all = 0;
+  for (int i = 0; i < splitPage; i++) {
+    final page = sourceDoc.pages[i];
+    final template = page.createTemplate();
+    doc1.pageSettings.size = page.size;
+    final newPage = doc1.pages.add();
+    newPage.graphics.drawPdfTemplate(template, Offset.zero);
+  }
+  final path1 = p.join(outDir, '${base}_part1_${timestamp}.pdf');
+  final bytes1 = await doc1.save();
+  doc1.dispose();
+  await File(path1).writeAsBytes(bytes1);
+
+  // Part 2: pages splitPage to totalPages - 1
+  final doc2 = PdfDocument();
+  doc2.pageSettings.margins.all = 0;
+  for (int i = splitPage; i < totalPages; i++) {
+    final page = sourceDoc.pages[i];
+    final template = page.createTemplate();
+    doc2.pageSettings.size = page.size;
+    final newPage = doc2.pages.add();
+    newPage.graphics.drawPdfTemplate(template, Offset.zero);
+  }
+  final path2 = p.join(outDir, '${base}_part2_${timestamp}.pdf');
+  final bytes2 = await doc2.save();
+  doc2.dispose();
+  await File(path2).writeAsBytes(bytes2);
+
+  sourceDoc.dispose();
+  return [path1, path2];
+}
+
+Future<String> _extractTextIsolate(String inputPath) async {
+  final file = File(inputPath);
+  final bytes = await file.readAsBytes();
+  final document = PdfDocument(inputBytes: bytes);
+  final extractor = PdfTextExtractor(document);
+  final text = extractor.extractText();
+  document.dispose();
+  return text;
 }

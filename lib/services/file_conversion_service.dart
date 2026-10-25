@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:mime/mime.dart';
 import 'package:path/path.dart' as p;
 import '../core/utils.dart';
+import 'pdf_toolkit_service.dart';
 
 enum ConversionState {
   idle,
@@ -188,6 +189,21 @@ class FileConversionService {
           description: 'Standard JPEG photo',
         ));
       }
+    } else if (ext == 'pdf') {
+      options.add(const QuickConvertOption(
+        id: 'to_txt',
+        name: 'Plain Text',
+        extension: 'txt',
+        category: QuickConvertCategory.image,
+        description: 'Extract text to .txt',
+      ));
+      options.add(const QuickConvertOption(
+        id: 'to_epub',
+        name: 'EPUB eBook',
+        extension: 'epub',
+        category: QuickConvertCategory.video,
+        description: 'Reflowable EPUB 3 document',
+      ));
     }
 
     return options;
@@ -329,6 +345,23 @@ class FileConversionService {
   }) async {
     final targetExt = targetOption.extension.toLowerCase();
     final targetPath = outputPath ?? resolveOutputPath(inputPath, targetExt);
+
+    if (targetExt == 'txt') {
+      if (onStatus != null) onStatus('Extracting text in isolate...');
+      final text = await PdfToolkitService.extractText(File(inputPath));
+      await File(targetPath).writeAsString(text);
+      if (onProgress != null) onProgress(1.0);
+      return targetPath;
+    } else if (targetExt == 'epub') {
+      if (onStatus != null) onStatus('Converting PDF to EPUB...');
+      final epubPath = await PdfToolkitService.convertPdfToEpub(
+        inputPath: inputPath,
+        outputName: p.basenameWithoutExtension(targetPath),
+      );
+      if (onProgress != null) onProgress(1.0);
+      return epubPath;
+    }
+
     final command = _buildCommand(inputPath, targetPath, targetExt);
 
     if (onStatus != null) {

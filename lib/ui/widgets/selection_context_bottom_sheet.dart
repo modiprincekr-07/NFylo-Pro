@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import 'batch_rename_dialog.dart';
 import '../../services/folder_share_service.dart';
 import 'quick_convert_bottom_sheet.dart';
+import 'pdf_tools_bottom_sheet.dart';
 
 class SelectionContextBottomSheet extends StatelessWidget {
   final FileManagerProvider provider;
@@ -215,6 +216,16 @@ class SelectionContextBottomSheet extends StatelessWidget {
                 onTap: () {
                   Navigator.pop(context);
                   QuickConvertBottomSheet.show(context, File(targetPath));
+                },
+              ),
+            if (isSingle && !isFolder && targetPath.toLowerCase().endsWith('.pdf'))
+              _buildMenuItem(
+                context: context,
+                icon: Icons.picture_as_pdf_rounded,
+                label: 'PDF Tools',
+                onTap: () {
+                  Navigator.pop(context);
+                  PdfToolsBottomSheet.show(context, File(targetPath));
                 },
               ),
             _buildMenuItem(

@@ -72,23 +72,44 @@ class FileItem extends StatelessWidget {
             children: [
               GestureDetector(
                 onTap: onIconTap ?? onLongPress,
-                child: Container(
-                  width: 48 * iconScale,
-                  height: 48 * iconScale,
-                  decoration: BoxDecoration(
-                    color: isSelected ? theme.colorScheme.primary : iconColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: MediaThumbnail(
-                      file: file,
-                      iconScale: iconScale,
-                      isSelected: isSelected,
-                      iconColor: iconColor,
-                    ),
-                  ),
-                ),
+                child: file.path.toLowerCase().endsWith('.pdf')
+                    ? Hero(
+                        tag: file.path,
+                        child: Container(
+                          width: 48 * iconScale,
+                          height: 48 * iconScale,
+                          decoration: BoxDecoration(
+                            color: isSelected ? theme.colorScheme.primary : iconColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: MediaThumbnail(
+                              file: file,
+                              iconScale: iconScale,
+                              isSelected: isSelected,
+                              iconColor: iconColor,
+                            ),
+                          ),
+                        ),
+                      )
+                    : Container(
+                        width: 48 * iconScale,
+                        height: 48 * iconScale,
+                        decoration: BoxDecoration(
+                          color: isSelected ? theme.colorScheme.primary : iconColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: MediaThumbnail(
+                            file: file,
+                            iconScale: iconScale,
+                            isSelected: isSelected,
+                            iconColor: iconColor,
+                          ),
+                        ),
+                      ),
               ),
               const SizedBox(width: 16),
               Expanded(

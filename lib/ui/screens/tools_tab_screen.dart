@@ -1,4 +1,11 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:path/path.dart' as p;
+import 'package:provider/provider.dart';
+import '../../providers/file_manager_provider.dart';
+import '../../services/document_scanner_service.dart';
+import 'pdf_viewer_screen.dart';
 import '../../core/icon_fonts/broken_icons.dart';
 import '../widgets/nfile_icon.dart';
 import 'storage_analyzer/storage_analyzer_screen.dart';
@@ -493,6 +500,143 @@ class ToolsTabScreen extends StatelessWidget {
 
             // 3. PDF, Document Scanner & Media Studio (Stage 8)
             _buildSectionHeader(theme, 'PDF, Document Scanner & Media Studio'),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: isDark
+                            ? [
+                                const Color(0xFF1E3A8A).withOpacity(0.35),
+                                const Color(0xFF2563EB).withOpacity(0.15),
+                              ]
+                            : [
+                                const Color(0xFFDBEAFE),
+                                const Color(0xFFEFF6FF),
+                              ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: (isDark ? Colors.blueAccent : const Color(0xFF2563EB)).withOpacity(0.25),
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () async {
+                          HapticFeedback.lightImpact();
+                          final file = await DocumentScannerService.scanDocument();
+                          if (file != null && context.mounted) {
+                            HapticFeedback.heavyImpact();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Document scanned: ${p.basename(file.path)}'),
+                                action: SnackBarAction(
+                                  label: 'View PDF',
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => PdfViewerScreen(filePath: file.path),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            );
+                            try {
+                              context.read<FileManagerProvider>().loadDirectory(
+                                    context.read<FileManagerProvider>().currentPath,
+                                    showLoading: false,
+                                    clearCache: true,
+                                  );
+                            } catch (_) {}
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(20),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: (isDark ? Colors.blueAccent : const Color(0xFF2563EB)).withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Icon(
+                                  Broken.scanner,
+                                  color: isDark ? Colors.blueAccent : const Color(0xFF2563EB),
+                                  size: 26,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Text(
+                                          'Scan Document',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                            letterSpacing: -0.2,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.blueAccent.withOpacity(0.2),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: const Text(
+                                            'ML KIT',
+                                            style: TextStyle(
+                                              fontSize: 9.5,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.blueAccent,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      'Edge detection scanner with gallery import & clean PDF export',
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        color: theme.textTheme.bodySmall?.color?.withOpacity(0.65),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: 15,
+                                color: theme.colorScheme.onSurface.withOpacity(0.35),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
