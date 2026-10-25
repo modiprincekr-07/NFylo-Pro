@@ -10,6 +10,7 @@ import 'create_archive_dialog.dart';
 import 'package:share_plus/share_plus.dart';
 import 'batch_rename_dialog.dart';
 import '../../services/folder_share_service.dart';
+import 'quick_convert_bottom_sheet.dart';
 
 class SelectionContextBottomSheet extends StatelessWidget {
   final FileManagerProvider provider;
@@ -204,6 +205,16 @@ class SelectionContextBottomSheet extends StatelessWidget {
                 onTap: () {
                   Navigator.pop(context);
                   provider.openFile(context, targetPath, forceOpenWith: true);
+                },
+              ),
+            if (isSingle && !isFolder)
+              _buildMenuItem(
+                context: context,
+                icon: Icons.auto_awesome,
+                label: 'Quick Convert',
+                onTap: () {
+                  Navigator.pop(context);
+                  QuickConvertBottomSheet.show(context, File(targetPath));
                 },
               ),
             _buildMenuItem(

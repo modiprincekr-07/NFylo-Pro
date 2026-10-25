@@ -12,6 +12,7 @@ import '../../services/natural_language_search_parser.dart';
 import '../widgets/file_item.dart';
 import '../widgets/folder_item.dart';
 import '../widgets/nfile_icon.dart';
+import '../widgets/quick_convert_bottom_sheet.dart';
 
 class SearchTabScreen extends StatefulWidget {
   final Function(int) onNavigateTab;
@@ -630,7 +631,11 @@ class _SearchTabScreenState extends State<SearchTabScreen> {
                 onTap: () {
                   context.read<FileManagerProvider>().openFile(context, item.path);
                 },
-                onAction: (action) {},
+                onAction: (action) {
+                  if (action == 'quick_convert') {
+                    QuickConvertBottomSheet.show(context, File(item.path));
+                  }
+                },
               );
             },
           ),

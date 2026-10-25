@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
@@ -33,6 +34,7 @@ import '../../services/network_connections_service.dart';
 import 'network_connection_wizard_screen.dart';
 import 'remote_explorer_screen.dart';
 import '../widgets/folder_customization_dialog.dart';
+import '../widgets/quick_convert_bottom_sheet.dart';
 
 class DirectoryScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -132,6 +134,9 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
   void _handleAction(BuildContext context, String action, String path) async {
     final provider = context.read<FileManagerProvider>();
     switch (action) {
+      case 'quick_convert':
+        await QuickConvertBottomSheet.show(context, File(path));
+        break;
       case 'customize_folder':
         await FolderCustomizationDialog.show(context, path);
         break;

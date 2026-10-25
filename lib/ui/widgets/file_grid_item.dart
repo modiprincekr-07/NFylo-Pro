@@ -168,6 +168,10 @@ class FileGridItem extends StatelessWidget {
                   onSelected: onAction,
                   itemBuilder: (context) {
                     return [
+                      const PopupMenuItem(
+                        value: 'quick_convert',
+                        child: Row(children: [Icon(Icons.auto_awesome, size: 20, color: Colors.amber), SizedBox(width: 12), Text('Quick Convert', style: TextStyle(fontWeight: FontWeight.w500))]),
+                      ),
                       if (isArchive)
                         const PopupMenuItem(value: 'extract', child: Row(children: [NfileIcon(Broken.archive, size: 20), SizedBox(width: 12), Text('Extract', style: TextStyle(fontWeight: FontWeight.w500))])),
                       const PopupMenuItem(value: 'archive', child: Row(children: [NfileIcon(Broken.box_add, size: 20), SizedBox(width: 12), Text('Archive', style: TextStyle(fontWeight: FontWeight.w500))])),
