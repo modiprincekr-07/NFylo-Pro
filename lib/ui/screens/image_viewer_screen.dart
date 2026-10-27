@@ -8,6 +8,7 @@ import 'package:photo_manager/photo_manager.dart';
 import 'package:flutter_avif/flutter_avif.dart';
 import '../../providers/media_provider.dart';
 import '../../core/icon_fonts/broken_icons.dart';
+import '../../utils/ecosystem_handoff.dart';
 
 final Uint8List _kTransparentImage = Uint8List.fromList([
   0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
@@ -209,6 +210,47 @@ class _ImageViewerScreenState extends State<ImageViewerScreen> {
                     ),
                   ],
                 ),
+                actions: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: IconButton(
+                      icon: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE040FB).withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.auto_awesome,
+                          color: Color(0xFFE040FB),
+                          size: 18,
+                        ),
+                      ),
+                      tooltip: 'Edit in ImageToolbox',
+                      onPressed: () {
+                        File? imgFile;
+                        if (widget.siblingItems != null && _currentIndex < widget.siblingItems!.length) {
+                          final item = widget.siblingItems![_currentIndex];
+                          if (item is FileSystemEntity) {
+                            imgFile = File(item.path);
+                          } else if (_fileCache[_currentIndex] != null) {
+                            imgFile = _fileCache[_currentIndex];
+                          }
+                        } else if (widget.siblingAssets != null && _currentIndex < widget.siblingAssets!.length) {
+                          imgFile = _fileCache[_currentIndex];
+                        } else if (_imageList.isNotEmpty && _currentIndex < _imageList.length) {
+                          imgFile = File(_imageList[_currentIndex]);
+                        } else {
+                          imgFile = File(widget.imagePath);
+                        }
+
+                        if (imgFile != null) {
+                          EcosystemHandoff.launchImageToolbox(imgFile, context: context);
+                        }
+                      },
+                    ),
+                  ),
+                ],
               )
             : null,
         body: Dismissible(

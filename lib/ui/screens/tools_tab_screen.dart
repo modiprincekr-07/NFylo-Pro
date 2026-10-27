@@ -23,6 +23,7 @@ import 'tools/image_upscaler_screen.dart';
 import 'tools/pdf_toolkit_screen.dart';
 import 'tools/document_scanner_screen.dart';
 import 'tools/media_studio_screen.dart';
+import 'tools/video_trimmer_screen.dart';
 import 'tools/voice_recorder_screen.dart';
 import 'tools/smb_ftp_client_screen.dart';
 import 'tools/nearby_transfer_screen.dart';
@@ -695,6 +696,37 @@ class ToolsTabScreen extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: _ToolCard(
+                      icon: Broken.scissor,
+                      label: 'Video Trimmer\n(LibreCuts)',
+                      subtitle: 'Lossless fast video cut',
+                      color: const Color(0xFFFF2A55),
+                      onTap: () => Navigator.of(context).push(
+                        PageRouteBuilder(
+                          pageBuilder: (context, animation, secondaryAnimation) =>
+                              const VideoTrimmerScreen(),
+                          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                            return const FadeUpwardsPageTransitionsBuilder().buildTransitions(
+                              MaterialPageRoute(builder: (_) => const SizedBox()),
+                              context,
+                              animation,
+                              secondaryAnimation,
+                              child,
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _ToolCard(
                       icon: Broken.microphone_2,
                       label: 'Voice\nRecorder',
                       subtitle: 'Record & share voice notes',
@@ -707,6 +739,8 @@ class ToolsTabScreen extends StatelessWidget {
                       ),
                     ),
                   ),
+                  const SizedBox(width: 12),
+                  const Spacer(),
                 ],
               ),
             ),

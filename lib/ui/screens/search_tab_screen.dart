@@ -13,6 +13,8 @@ import '../widgets/file_item.dart';
 import '../widgets/folder_item.dart';
 import '../widgets/nfile_icon.dart';
 import '../widgets/quick_convert_bottom_sheet.dart';
+import '../../utils/ecosystem_handoff.dart';
+import 'tools/video_trimmer_screen.dart';
 
 class SearchTabScreen extends StatefulWidget {
   final Function(int) onNavigateTab;
@@ -634,6 +636,24 @@ class _SearchTabScreenState extends State<SearchTabScreen> {
                 onAction: (action) {
                   if (action == 'quick_convert') {
                     QuickConvertBottomSheet.show(context, File(item.path));
+                  } else if (action == 'edit_image_toolbox') {
+                    EcosystemHandoff.launchImageToolbox(File(item.path), context: context);
+                  } else if (action == 'trim_video') {
+                    Navigator.of(context).push(
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation, secondaryAnimation) =>
+                            VideoTrimmerScreen(videoPath: item.path),
+                        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                          return const FadeUpwardsPageTransitionsBuilder().buildTransitions(
+                            MaterialPageRoute(builder: (_) => const SizedBox()),
+                            context,
+                            animation,
+                            secondaryAnimation,
+                            child,
+                          );
+                        },
+                      ),
+                    );
                   }
                 },
               );

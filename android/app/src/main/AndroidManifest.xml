@@ -234,6 +234,7 @@
             <data android:mimeType="text/plain"/>
         </intent>
         <package android:name="moe.shizuku.privileged.api" />
+        <package android:name="com.t8rin.imagetoolbox" />
         <intent>
             <action android:name="rikka.shizuku.intent.action.REQUEST_PERMISSION" />
         </intent>

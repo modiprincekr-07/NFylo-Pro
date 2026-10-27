@@ -35,6 +35,8 @@ import 'network_connection_wizard_screen.dart';
 import 'remote_explorer_screen.dart';
 import '../widgets/folder_customization_dialog.dart';
 import '../widgets/quick_convert_bottom_sheet.dart';
+import '../../utils/ecosystem_handoff.dart';
+import 'tools/video_trimmer_screen.dart';
 
 class DirectoryScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -134,6 +136,26 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
   void _handleAction(BuildContext context, String action, String path) async {
     final provider = context.read<FileManagerProvider>();
     switch (action) {
+      case 'edit_image_toolbox':
+        await EcosystemHandoff.launchImageToolbox(File(path), context: context);
+        break;
+      case 'trim_video':
+        Navigator.of(context).push(
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                VideoTrimmerScreen(videoPath: path),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return const FadeUpwardsPageTransitionsBuilder().buildTransitions(
+                MaterialPageRoute(builder: (_) => const SizedBox()),
+                context,
+                animation,
+                secondaryAnimation,
+                child,
+              );
+            },
+          ),
+        );
+        break;
       case 'quick_convert':
         await QuickConvertBottomSheet.show(context, File(path));
         break;

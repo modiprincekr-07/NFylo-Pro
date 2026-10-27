@@ -98,6 +98,8 @@ dependencies:
   http: ^1.2.0
   google_sign_in: ^6.2.1
   googleapis: ^13.1.0
+  android_intent_plus: ^5.1.0
+  video_player: ^2.8.6
 
 dev_dependencies:
   flutter_test:

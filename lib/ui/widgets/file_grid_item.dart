@@ -189,6 +189,16 @@ class FileGridItem extends StatelessWidget {
                   onSelected: onAction,
                   itemBuilder: (context) {
                     return [
+                      if (FileUtils.isImage(file.path))
+                        const PopupMenuItem(
+                          value: 'edit_image_toolbox',
+                          child: Row(children: [Icon(Icons.auto_awesome, size: 20, color: Color(0xFFE040FB)), SizedBox(width: 12), Text('Edit in ImageToolbox', style: TextStyle(fontWeight: FontWeight.w500))]),
+                        ),
+                      if (FileUtils.isVideo(file.path))
+                        const PopupMenuItem(
+                          value: 'trim_video',
+                          child: Row(children: [Icon(Icons.content_cut_rounded, size: 20, color: Color(0xFFFF2A55)), SizedBox(width: 12), Text('Trim Video', style: TextStyle(fontWeight: FontWeight.w500))]),
+                        ),
                       const PopupMenuItem(
                         value: 'quick_convert',
                         child: Row(children: [Icon(Icons.auto_awesome, size: 20, color: Colors.amber), SizedBox(width: 12), Text('Quick Convert', style: TextStyle(fontWeight: FontWeight.w500))]),

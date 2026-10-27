@@ -12,6 +12,9 @@ import 'batch_rename_dialog.dart';
 import '../../services/folder_share_service.dart';
 import 'quick_convert_bottom_sheet.dart';
 import 'pdf_tools_bottom_sheet.dart';
+import '../../core/utils.dart';
+import '../../utils/ecosystem_handoff.dart';
+import '../screens/tools/video_trimmer_screen.dart';
 
 class SelectionContextBottomSheet extends StatelessWidget {
   final FileManagerProvider provider;
@@ -226,6 +229,42 @@ class SelectionContextBottomSheet extends StatelessWidget {
                 onTap: () {
                   Navigator.pop(context);
                   PdfToolsBottomSheet.show(context, File(targetPath));
+                },
+              ),
+            if (isSingle && !isFolder && FileUtils.isImage(targetPath))
+              _buildMenuItem(
+                context: context,
+                icon: Icons.auto_awesome,
+                color: const Color(0xFFE040FB),
+                label: 'Edit in ImageToolbox',
+                onTap: () {
+                  Navigator.pop(context);
+                  EcosystemHandoff.launchImageToolbox(File(targetPath), context: context);
+                },
+              ),
+            if (isSingle && !isFolder && FileUtils.isVideo(targetPath))
+              _buildMenuItem(
+                context: context,
+                icon: Icons.content_cut_rounded,
+                color: const Color(0xFFFF2A55),
+                label: 'Trim Video',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.of(context).push(
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) =>
+                          VideoTrimmerScreen(videoPath: targetPath),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        return const FadeUpwardsPageTransitionsBuilder().buildTransitions(
+                          MaterialPageRoute(builder: (_) => const SizedBox()),
+                          context,
+                          animation,
+                          secondaryAnimation,
+                          child,
+                        );
+                      },
+                    ),
+                  );
                 },
               ),
             _buildMenuItem(
