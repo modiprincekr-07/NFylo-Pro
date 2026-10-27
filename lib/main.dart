@@ -20,12 +20,36 @@ import 'services/pin_service.dart';
 import 'services/recycle_bin_service.dart';
 import 'services/audio_background_handler.dart';
 import 'package:audio_service/audio_service.dart';
+import 'services/picker_mode_service.dart';
 import 'ui/screens/home_screen.dart';
+import 'ui/screens/directory_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Fast check: was app launched as a system document picker (ACTION_GET_CONTENT / ACTION_PICK)?
+  final isPicker = await PickerModeService.checkPickerMode();
+
+  if (isPicker) {
+    // Under 200ms ultra-fast cold start: defer heavy initializations!
+    // Initialize only lightweight preferences for theme and file storage paths
+    await PreferencesService.init();
+
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => FileManagerProvider()),
+          ChangeNotifierProvider(create: (_) => MediaProvider()),
+        ],
+        child: const NFileApp(isPickerMode: true),
+      ),
+    );
+    return;
+  }
+
+  // Full app initialization for regular launcher sessions
   MediaKit.ensureInitialized();
   await PreferencesService.init();
   await PinService.init();
@@ -111,7 +135,12 @@ Future<void> _updateSystemGestureExclusion(bool disableLeftBack, double width, d
 }
 
 class NFileApp extends StatefulWidget {
-  const NFileApp({super.key});
+  final bool isPickerMode;
+
+  const NFileApp({
+    super.key,
+    this.isPickerMode = false,
+  });
 
   @override
   State<NFileApp> createState() => _NFileAppState();
@@ -126,35 +155,37 @@ class _NFileAppState extends State<NFileApp> {
   @override
   void initState() {
     super.initState();
-    final hideNav = PreferencesService.getHideNavigationBar();
-    if (hideNav) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [SystemUiOverlay.top]);
-    } else {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
-    }
-    SystemChrome.setSystemUIChangeCallback((bool visible) async {
-      if (visible) {
-        final context = navigatorKey.currentContext;
-        if (context != null && context.mounted) {
-          final fileManager = Provider.of<FileManagerProvider>(context, listen: false);
-          if (fileManager.isVideoPlayingFullscreen) return;
-        }
-
-        if (PreferencesService.getHideNavigationBar()) {
-          await Future.delayed(const Duration(milliseconds: 1500));
-          final context2 = navigatorKey.currentContext;
-          if (context2 != null && context2.mounted) {
-            final fileManager = Provider.of<FileManagerProvider>(context2, listen: false);
+    if (!widget.isPickerMode) {
+      final hideNav = PreferencesService.getHideNavigationBar();
+      if (hideNav) {
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [SystemUiOverlay.top]);
+      } else {
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
+      }
+      SystemChrome.setSystemUIChangeCallback((bool visible) async {
+        if (visible) {
+          final context = navigatorKey.currentContext;
+          if (context != null && context.mounted) {
+            final fileManager = Provider.of<FileManagerProvider>(context, listen: false);
             if (fileManager.isVideoPlayingFullscreen) return;
           }
+
           if (PreferencesService.getHideNavigationBar()) {
-            SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [SystemUiOverlay.top]);
+            await Future.delayed(const Duration(milliseconds: 1500));
+            final context2 = navigatorKey.currentContext;
+            if (context2 != null && context2.mounted) {
+              final fileManager = Provider.of<FileManagerProvider>(context2, listen: false);
+              if (fileManager.isVideoPlayingFullscreen) return;
+            }
+            if (PreferencesService.getHideNavigationBar()) {
+              SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [SystemUiOverlay.top]);
+            }
           }
         }
-      }
-    });
-    // Setup sharing observer immediately to catch incoming intents at the earliest possible frame!
-    _setupSharingIntentObserver();
+      });
+      // Setup sharing observer immediately to catch incoming intents at the earliest possible frame!
+      _setupSharingIntentObserver();
+    }
     _initializeApplication();
   }
 
@@ -370,7 +401,12 @@ class _NFileAppState extends State<NFileApp> {
                   : (_hasPermission == null
                       ? const Scaffold()
                       : (_hasPermission == true
-                          ? HomeScreen(toggleTheme: _toggleTheme)
+                          ? (widget.isPickerMode
+                              ? DirectoryScreen(
+                                  toggleTheme: _toggleTheme,
+                                  isPickerMode: true,
+                                )
+                              : HomeScreen(toggleTheme: _toggleTheme))
                           : _StoragePermissionShield(onRequestPermission: _requestStoragePermission))),
             );
           },

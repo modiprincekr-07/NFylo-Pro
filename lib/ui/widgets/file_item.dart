@@ -11,6 +11,7 @@ import '../../services/pin_service.dart';
 import '../../services/app_manager_service.dart';
 import '../../providers/media_provider.dart';
 import '../../providers/file_manager_provider.dart';
+import '../../services/picker_mode_service.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
 class FileItem extends StatelessWidget {
@@ -63,7 +64,13 @@ class FileItem extends StatelessWidget {
         ),
       ),
       child: InkWell(
-        onTap: onTap,
+        onTap: () {
+          if (PickerModeService.isPickerMode) {
+            PickerModeService.finishWithResult(file.path);
+            return;
+          }
+          onTap();
+        },
         onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
@@ -166,7 +173,7 @@ class FileItem extends StatelessWidget {
                   ],
                 ),
               ),
-              if (!context.select<FileManagerProvider, bool>((p) => p.hideActionMenuButtons))
+              if (!PickerModeService.isPickerMode && !context.select<FileManagerProvider, bool>((p) => p.hideActionMenuButtons))
                 PopupMenuButton<String>(
                   icon: const NfileIcon(Broken.more, size: 22),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

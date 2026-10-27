@@ -36,15 +36,19 @@ import 'remote_explorer_screen.dart';
 import '../widgets/folder_customization_dialog.dart';
 import '../widgets/quick_convert_bottom_sheet.dart';
 import '../../utils/ecosystem_handoff.dart';
+import '../../services/picker_mode_service.dart';
 import 'tools/video_trimmer_screen.dart';
 
 class DirectoryScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
   final Function(int)? onNavigateTab;
+  final bool isPickerMode;
+
   const DirectoryScreen({
     super.key,
     required this.toggleTheme,
     this.onNavigateTab,
+    this.isPickerMode = false,
   });
 
   @override
@@ -1420,20 +1424,24 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
         }
 
         return PopScope(
-          canPop: !isSelectionMode && !provider.canGoBack,
+          canPop: !isSelectionMode && !provider.canGoBack && !widget.isPickerMode,
           onPopInvoked: (didPop) {
             if (didPop) return;
             if (isSelectionMode) {
               provider.clearSelection();
             } else if (provider.canGoBack) {
               _goBack(provider);
+            } else if (widget.isPickerMode) {
+              PickerModeService.cancelPicker();
             }
           },
           child: Scaffold(
-            drawer: NFileDrawer(
-              toggleTheme: widget.toggleTheme,
-              onNavigateTab: widget.onNavigateTab,
-            ),
+            drawer: widget.isPickerMode
+                ? null
+                : NFileDrawer(
+                    toggleTheme: widget.toggleTheme,
+                    onNavigateTab: widget.onNavigateTab,
+                  ),
             appBar: AppBar(
               titleSpacing: 0,
               centerTitle: false,
@@ -1483,10 +1491,18 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
                         );
                       },
                     )
+                  : widget.isPickerMode
+                  ? PulsingPickerTitle(
+                      title: 'Select a file...',
+                      subtitle: PickerModeService.pickerMimeType != null &&
+                              PickerModeService.pickerMimeType != '*/*'
+                          ? PickerModeService.pickerMimeType
+                          : null,
+                    )
                   : _AnimatedTitleButton(
                       onTap: () => _showStorageVolumeModal(context, provider),
                     ),
-              bottom: (isSelectionMode || !provider.enableMultipleTabs)
+              bottom: (widget.isPickerMode || isSelectionMode || !provider.enableMultipleTabs)
                   ? null
                   : DirectoryTabBar(provider: provider),
               leading: isSelectionMode
@@ -1505,6 +1521,12 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
                   ? IconButton(
                       icon: const Icon(Broken.arrow_left),
                       onPressed: () => _goBack(provider),
+                    )
+                  : widget.isPickerMode
+                  ? IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      tooltip: 'Cancel',
+                      onPressed: () => PickerModeService.cancelPicker(),
                     )
                   : Builder(
                       builder: (context) => IconButton(
@@ -1732,6 +1754,19 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
                               },
                             ),
                           ]
+                  : widget.isPickerMode
+                  ? [
+                      IconButton(
+                        icon: const Icon(Broken.search_normal_1, size: 22),
+                        tooltip: 'Search',
+                        onPressed: () => provider.toggleSearchForActiveTab(),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded, size: 24),
+                        tooltip: 'Cancel',
+                        onPressed: () => PickerModeService.cancelPicker(),
+                      ),
+                    ]
                   : provider.showBottomActionBar
                   ? [
                       PopupMenuButton<String>(
@@ -2424,6 +2459,10 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
                                                             provider
                                                                 .itemPaddingMultiplier,
                                                         onTap: () {
+                                                          if (PickerModeService.isPickerMode) {
+                                                            PickerModeService.finishWithResult(item.path);
+                                                            return;
+                                                          }
                                                           if (isSelectionMode) {
                                                             provider
                                                                 .toggleSelection(
@@ -2553,6 +2592,10 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
                                                             provider
                                                                 .itemPaddingMultiplier,
                                                         onTap: () {
+                                                          if (PickerModeService.isPickerMode) {
+                                                            PickerModeService.finishWithResult(item.path);
+                                                            return;
+                                                          }
                                                           if (isSelectionMode) {
                                                             provider
                                                                 .toggleSelection(
@@ -2603,7 +2646,9 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
                 : provider.showBottomActionBar
                 ? FloatingActionButtonLocation.centerDocked
                 : FloatingActionButtonLocation.endFloat,
-            floatingActionButton: (() {
+            floatingActionButton: widget.isPickerMode
+                ? null
+                : (() {
               if (provider.hasClipboard) {
                 return Padding(
                   padding: EdgeInsets.only(
@@ -2676,8 +2721,9 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
               }
               return null;
             })(),
-            bottomNavigationBar:
-                (isSelectionMode && provider.showBottomActionBar)
+            bottomNavigationBar: widget.isPickerMode
+                ? null
+                : (isSelectionMode && provider.showBottomActionBar)
                 ? SelectionActionBar(provider: provider)
                 : !provider.showBottomActionBar
                 ? null

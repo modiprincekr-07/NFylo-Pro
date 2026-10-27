@@ -11,6 +11,7 @@ import '../../services/pin_service.dart';
 import '../../services/app_manager_service.dart';
 import '../../providers/media_provider.dart';
 import '../../providers/file_manager_provider.dart';
+import '../../services/picker_mode_service.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
 class FileGridItem extends StatelessWidget {
@@ -55,7 +56,13 @@ class FileGridItem extends StatelessWidget {
         ),
       ),
       child: InkWell(
-        onTap: onTap,
+        onTap: () {
+          if (PickerModeService.isPickerMode) {
+            PickerModeService.finishWithResult(file.path);
+            return;
+          }
+          onTap();
+        },
         onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(16),
         child: Stack(
@@ -177,7 +184,7 @@ class FileGridItem extends StatelessWidget {
                   child: const Icon(Icons.push_pin_rounded, size: 12, color: Colors.white),
                 ),
               ),
-            if (!isSelected && !context.select<FileManagerProvider, bool>((p) => p.hideActionMenuButtons))
+            if (!PickerModeService.isPickerMode && !isSelected && !context.select<FileManagerProvider, bool>((p) => p.hideActionMenuButtons))
               Positioned(
                 top: 4,
                 right: 4,

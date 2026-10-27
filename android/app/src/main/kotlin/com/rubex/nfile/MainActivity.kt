@@ -28,6 +28,9 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
 import androidx.core.app.NotificationCompat
+import androidx.core.content.FileProvider
+import android.app.Activity
+import android.content.ClipData
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -99,6 +102,11 @@ class MainActivity : AudioServiceFragmentActivity() {
             e.printStackTrace()
         }
         super.onDestroy()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -778,6 +786,58 @@ class MainActivity : AudioServiceFragmentActivity() {
                 "cancelNotification" -> {
                     val id = call.argument<Int>("id") ?: 100
                     notificationManager.cancel(id)
+                    result.success(true)
+                }
+                else -> result.notImplemented()
+            }
+        }
+
+        // Native System File Picker MethodChannel (DocumentsUI Alternative)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.modiprincekr.nfylo/picker").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "isPickerMode" -> {
+                    val act = intent?.action
+                    val isPicker = act == Intent.ACTION_GET_CONTENT || act == Intent.ACTION_PICK
+                    val mimeType = intent?.type ?: "*/*"
+                    result.success(mapOf(
+                        "isPicker" to isPicker,
+                        "mimeType" to mimeType,
+                        "action" to (act ?: "")
+                    ))
+                }
+                "finishWithResult" -> {
+                    val path = call.argument<String>("path") ?: call.argument<String>("filePath")
+                    if (path != null) {
+                        try {
+                            val file = File(path)
+                            if (!file.exists()) {
+                                result.error("FILE_NOT_FOUND", "File does not exist: $path", null)
+                                return@setMethodCallHandler
+                            }
+                            val uri: Uri = FileProvider.getUriForFile(
+                                this@MainActivity,
+                                "${applicationContext.packageName}.fileprovider",
+                                file
+                            )
+                            val resultIntent = Intent().apply {
+                                setData(uri)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                clipData = ClipData.newRawUri("File", uri)
+                            }
+                            setResult(Activity.RESULT_OK, resultIntent)
+                            finish()
+                            result.success(true)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            result.error("PROVIDER_ERROR", e.message, null)
+                        }
+                    } else {
+                        result.error("INVALID_PATH", "Path argument is null", null)
+                    }
+                }
+                "cancelPicker" -> {
+                    setResult(Activity.RESULT_CANCELED)
+                    finish()
                     result.success(true)
                 }
                 else -> result.notImplemented()

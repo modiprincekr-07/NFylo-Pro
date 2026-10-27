@@ -14,6 +14,7 @@ import 'search_tab_screen.dart';
 import 'tools_tab_screen.dart';
 import 'storage_analyzer/storage_analyzer_screen.dart';
 import 'storage_cleanup/storage_cleanup_screen.dart';
+import '../../services/picker_mode_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
@@ -40,7 +41,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Si
     );
     _currentIndex = context.read<FileManagerProvider>().defaultToBrowseScreen ? 1 : 0;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<MediaProvider>().loadMedia();
+      if (!PickerModeService.isPickerMode) {
+        context.read<MediaProvider>().loadMedia();
+      }
     });
   }
 
