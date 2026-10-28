@@ -6,7 +6,6 @@ import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 
 import '../../core/icon_fonts/broken_icons.dart';
-import '../../core/icon_fonts/nfile_icons.dart';
 import '../../core/utils.dart';
 import '../../providers/file_manager_provider.dart';
 import '../../services/folder_share_service.dart';

@@ -6,7 +6,6 @@ import 'package:path/path.dart' as p;
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
 import '../../core/icon_fonts/broken_icons.dart';
-import '../../core/icon_fonts/nfile_icons.dart';
 import '../../core/utils.dart';
 import '../../services/folder_share_service.dart';
 import '../widgets/pdf_tools_bottom_sheet.dart';
