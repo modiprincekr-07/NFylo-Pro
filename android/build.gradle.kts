@@ -73,9 +73,9 @@ subprojects {
 }
 
 subprojects {
-    afterEvaluate {
-        (project.extensions.findByName("android") as? com.android.build.gradle.BaseExtension)?.apply {
-            compileSdkVersion(34)
+    project.plugins.withId("com.android.library") {
+        project.extensions.configure<com.android.build.gradle.LibraryExtension> {
+            compileSdk = 34
         }
     }
 }
