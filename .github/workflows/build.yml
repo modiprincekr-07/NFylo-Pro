@@ -75,6 +75,17 @@ jobs:
         if: steps.check_release.outputs.exists == 'false'
         run: flutter pub get
 
+      - name: Patch isar_flutter_libs namespace
+        if: steps.check_release.outputs.exists == 'false'
+        run: |
+          find $HOME/.pub-cache -path "*/isar_flutter_libs-*/android/build.gradle" 2>/dev/null | while read FILE; do
+            if ! grep -q "namespace" "$FILE"; then
+              echo "" >> "$FILE"
+              echo "android { namespace 'dev.isar.isar_flutter_libs' }" >> "$FILE"
+              echo "Patched isar_flutter_libs namespace in: $FILE"
+            fi
+          done
+
       - name: Patch flutter_avif_android duplicate class
         if: steps.check_release.outputs.exists == 'false'
         run: |
