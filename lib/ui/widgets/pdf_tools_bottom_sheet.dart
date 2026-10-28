@@ -166,9 +166,7 @@ class _PdfToolsBottomSheetState extends State<PdfToolsBottomSheet> {
     final pickedPath = await Navigator.push<String>(
       context,
       MaterialPageRoute(
-        builder: (_) => const InternalFilePickerScreen(
-          filterType: 'pdf',
-        ),
+        builder: (_) => const InternalFilePickerScreen(),
       ),
     );
 

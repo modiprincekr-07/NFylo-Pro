@@ -14,9 +14,9 @@ class InternalFilePickerScreen extends StatefulWidget {
   final String rootPath;
   final bool pickDirectory;
 
-  const InternalFilePickerScreen({super.key, required this.rootPath, this.pickDirectory = false});
+  const InternalFilePickerScreen({super.key, this.rootPath = '/storage/emulated/0', this.pickDirectory = false});
 
-  static Future<List<String>?> show(BuildContext context, {required String rootPath, bool pickDirectory = false}) {
+  static Future<List<String>?> show(BuildContext context, {String rootPath = '/storage/emulated/0', bool pickDirectory = false}) {
     return Navigator.push<List<String>>(
       context,
       MaterialPageRoute(builder: (_) => InternalFilePickerScreen(rootPath: rootPath, pickDirectory: pickDirectory)),

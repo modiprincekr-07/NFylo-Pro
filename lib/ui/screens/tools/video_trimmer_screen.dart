@@ -268,8 +268,8 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
     if (_isTrimming) return;
 
     // Pause video playback
-    if (_isControllerInitialized && _videoController.value.isPlaying) {
-      await _videoController.pause();
+    if (_isControllerInitialized && _videoController != null && _videoController!.value.isPlaying) {
+      await _videoController!.pause();
     }
 
     try {
@@ -729,12 +729,6 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
                             ),
                         ],
                       ),
-                          child: Center(
-                            child: _buildGlowingProgressIndicator(),
-                          ),
-                        ),
-                    ],
-                  ),
       ),
     );
   }
@@ -742,7 +736,7 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
   Widget _buildTimelineControls() {
     final clipDurationSec = (_trimRange.end - _trimRange.start).clamp(0.0, _totalDurationSec);
     final currentPosSec = _isControllerInitialized
-        ? (_videoController.value.position.inMilliseconds / 1000.0)
+        ? (_videoController!.value.position.inMilliseconds / 1000.0)
         : 0.0;
 
     return Container(
