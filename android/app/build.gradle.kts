@@ -18,6 +18,7 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace = "com.rubex.nfile"
     compileSdk = 35
+    compileSdkVersion(35)
     ndkVersion = "28.2.13676358"
 
     compileOptions {
@@ -43,7 +44,8 @@ android {
     defaultConfig {
         applicationId = "com.rubex.nfile"
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 35
+        targetSdkVersion(35)
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         androidResources {
