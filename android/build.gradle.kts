@@ -52,7 +52,7 @@ subprojects {
         project.afterEvaluate {
             project.plugins.withId("com.android.library") {
                 project.extensions.configure<com.android.build.gradle.LibraryExtension> {
-                    compileSdk = 34
+                    compileSdk = 35
                     compileOptions {
                         sourceCompatibility = JavaVersion.VERSION_17
                         targetCompatibility = JavaVersion.VERSION_17
@@ -75,7 +75,7 @@ subprojects {
 subprojects {
     project.plugins.withId("com.android.library") {
         project.extensions.configure<com.android.build.gradle.LibraryExtension> {
-            compileSdk = 34
+            compileSdk = 35
         }
     }
 }
