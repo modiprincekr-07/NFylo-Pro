@@ -52,6 +52,7 @@ subprojects {
         project.afterEvaluate {
             project.plugins.withId("com.android.library") {
                 project.extensions.configure<com.android.build.gradle.LibraryExtension> {
+                    compileSdk = 34
                     compileOptions {
                         sourceCompatibility = JavaVersion.VERSION_17
                         targetCompatibility = JavaVersion.VERSION_17
@@ -67,6 +68,14 @@ subprojects {
                     jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
                 }
             }
+        }
+    }
+}
+
+subprojects {
+    afterEvaluate {
+        (project.extensions.findByName("android") as? com.android.build.gradle.BaseExtension)?.apply {
+            compileSdkVersion(34)
         }
     }
 }
