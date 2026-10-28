@@ -17,7 +17,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.rubex.nfile"
-    compileSdk = 35
+    compileSdk = 34
     ndkVersion = "28.2.13676358"
 
     compileOptions {

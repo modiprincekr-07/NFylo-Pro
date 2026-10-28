@@ -79,7 +79,7 @@ jobs:
         if: steps.check_release.outputs.exists == 'false'
         run: |
           find $HOME/.pub-cache -path "*/isar_flutter_libs-*/android/build.gradle" 2>/dev/null | while read FILE; do
-            sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 35/g' "$FILE"
+            sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 34/g' "$FILE"
             if ! grep -q "namespace" "$FILE"; then
               echo "" >> "$FILE"
               echo "android { namespace 'dev.isar.isar_flutter_libs' }" >> "$FILE"
