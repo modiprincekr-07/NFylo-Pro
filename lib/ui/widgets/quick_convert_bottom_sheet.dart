@@ -11,6 +11,7 @@ import '../../core/utils.dart';
 import '../../providers/file_manager_provider.dart';
 import '../../services/file_conversion_service.dart';
 import '../../services/folder_share_service.dart';
+import 'nfile_icon.dart';
 
 enum _SheetPhase {
   select,

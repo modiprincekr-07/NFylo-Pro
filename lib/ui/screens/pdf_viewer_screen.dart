@@ -104,7 +104,6 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
       File(widget.filePath),
       key: _pdfViewerKey,
       controller: _pdfViewerController,
-      scrollPhysics: const BouncingScrollPhysics(),
       currentSearchTextHighlightColor: Colors.amber.withOpacity(0.55),
       otherSearchTextHighlightColor: Colors.yellow.withOpacity(0.3),
       onDocumentLoaded: (PdfDocumentLoadedDetails details) {

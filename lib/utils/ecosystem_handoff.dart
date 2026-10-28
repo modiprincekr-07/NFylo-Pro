@@ -112,7 +112,7 @@ class EcosystemHandoff {
     );
 
     try {
-      if (await explicitEditIntent.canResolveActivity()) {
+      if ((await explicitEditIntent.canResolveActivity()) ?? false) {
         await explicitEditIntent.launch();
         return true;
       }
@@ -132,7 +132,7 @@ class EcosystemHandoff {
     );
 
     try {
-      if (await fossEditIntent.canResolveActivity()) {
+      if ((await fossEditIntent.canResolveActivity()) ?? false) {
         await fossEditIntent.launch();
         return true;
       }
@@ -153,7 +153,7 @@ class EcosystemHandoff {
     );
 
     try {
-      if (await explicitSendIntent.canResolveActivity()) {
+      if ((await explicitSendIntent.canResolveActivity()) ?? false) {
         await explicitSendIntent.launch();
         return true;
       }
@@ -174,7 +174,7 @@ class EcosystemHandoff {
     );
 
     try {
-      if (await fossSendIntent.canResolveActivity()) {
+      if ((await fossSendIntent.canResolveActivity()) ?? false) {
         await fossSendIntent.launch();
         return true;
       }
@@ -193,7 +193,7 @@ class EcosystemHandoff {
     );
 
     try {
-      if (await genericEditIntent.canResolveActivity()) {
+      if ((await genericEditIntent.canResolveActivity()) ?? false) {
         await genericEditIntent.launch();
         return true;
       }

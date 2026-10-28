@@ -324,7 +324,9 @@ class _VideoTrimmerScreenState extends State<VideoTrimmerScreen>
 
               // Refresh directory in file manager provider
               try {
-                context.read<FileManagerProvider>().refresh();
+                final provider = context.read<FileManagerProvider>();
+                provider.loadDirectory(provider.currentPath, showLoading: false, clearCache: true);
+                provider.updateStorageSpace();
               } catch (_) {}
 
               _showSuccessDialog(outputPath);
