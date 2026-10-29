@@ -31,6 +31,16 @@ allprojects {
             substitute(module("com.arthenica:ffmpeg-kit")).using(module("dev.ffmpegkit-maintained:ffmpeg-kit:6.0.4"))
         }
     }
+    configurations.all {
+        resolutionStrategy {
+            force("androidx.core:core:1.13.1")
+            force("androidx.core:core-ktx:1.13.1")
+            force("androidx.navigation:navigation-runtime:2.7.7")
+            force("androidx.navigation:navigation-common:2.7.7")
+            force("androidx.navigation:navigation-ui:2.7.7")
+            force("androidx.navigation:navigation-fragment:2.7.7")
+        }
+    }
 }
 
 val newBuildDir: Directory =
