@@ -47,6 +47,7 @@ allprojects {
             force("androidx.lifecycle:lifecycle-common:2.8.7")
             force("androidx.lifecycle:lifecycle-viewmodel:2.8.7")
             force("androidx.lifecycle:lifecycle-common-java8:2.8.7")
+            force("androidx.browser:browser:1.8.0")
         }
     }
 }
