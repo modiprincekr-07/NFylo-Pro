@@ -39,6 +39,14 @@ allprojects {
             force("androidx.navigation:navigation-common:2.7.7")
             force("androidx.navigation:navigation-ui:2.7.7")
             force("androidx.navigation:navigation-fragment:2.7.7")
+            force("androidx.activity:activity:1.9.3")
+            force("androidx.activity:activity-ktx:1.9.3")
+            force("androidx.savedstate:savedstate:1.2.1")
+            force("androidx.savedstate:savedstate-ktx:1.2.1")
+            force("androidx.lifecycle:lifecycle-runtime:2.8.7")
+            force("androidx.lifecycle:lifecycle-common:2.8.7")
+            force("androidx.lifecycle:lifecycle-viewmodel:2.8.7")
+            force("androidx.lifecycle:lifecycle-common-java8:2.8.7")
         }
     }
 }
