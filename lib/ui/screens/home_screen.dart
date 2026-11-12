@@ -14,6 +14,7 @@ import 'search_tab_screen.dart';
 import 'tools_tab_screen.dart';
 import 'storage_analyzer/storage_analyzer_screen.dart';
 import 'storage_cleanup/storage_cleanup_screen.dart';
+import '../../screens/smart_cleanup_screen.dart';
 import '../../services/picker_mode_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -360,29 +361,35 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Si
       case 'storage_shortcuts':
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: _buildShortcutCard(
-                  theme,
-                  icon: Broken.chart,
-                  label: 'Storage Analyzer',
-                  subtitle: 'Analyze usage',
-                  color: theme.colorScheme.primary,
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StorageAnalyzerScreen())),
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildShortcutCard(
+                      theme,
+                      icon: Broken.chart,
+                      label: 'Storage Analyzer',
+                      subtitle: 'Analyze usage',
+                      color: theme.colorScheme.primary,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StorageAnalyzerScreen())),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildShortcutCard(
+                      theme,
+                      icon: Broken.brush_2,
+                      label: 'Storage Cleanup',
+                      subtitle: 'Free up space',
+                      color: Colors.green,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StorageCleanupScreen())),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildShortcutCard(
-                  theme,
-                  icon: Broken.brush_2,
-                  label: 'Storage Cleanup',
-                  subtitle: 'Free up space',
-                  color: Colors.green,
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StorageCleanupScreen())),
-                ),
-              ),
+              _buildSmartCleanupBanner(theme),
             ],
           ),
         );
@@ -461,6 +468,108 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver, Si
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSmartCleanupBanner(ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [const Color(0xFF1E1B4B), const Color(0xFF311042)]
+              : [const Color(0xFFEEF2FF), const Color(0xFFFAF5FF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: (isDark ? Colors.indigoAccent : Colors.deepPurple).withOpacity(0.25),
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SmartCleanupScreen()),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: (isDark ? Colors.indigoAccent : Colors.deepPurple).withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.swipe_rounded,
+                    color: isDark ? Colors.indigoAccent : Colors.deepPurple,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Smart Cleanup',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent.withOpacity(0.18),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'SWIPE TO TRASH',
+                              style: TextStyle(
+                                color: Colors.redAccent,
+                                fontSize: 8.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Tinder-style swipe to trash screenshots & photos',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.55),
+                          fontSize: 10.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: theme.colorScheme.onSurface.withOpacity(0.4),
+                ),
+              ],
+            ),
           ),
         ),
       ),

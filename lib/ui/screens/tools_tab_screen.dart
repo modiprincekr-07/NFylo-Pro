@@ -37,7 +37,7 @@ import 'tools/ai_tts_screen.dart';
 import 'tools/ai_image_cutout_screen.dart';
 import 'tools/ai_image_restoration_screen.dart';
 import 'tools/malware_scanner_screen.dart';
-import 'tools/smart_cleanup_screen.dart';
+import '../../screens/smart_cleanup_screen.dart';
 import 'ftp_server_screen.dart';
 import 'vault_lock_screen.dart';
 import 'recycle_bin_screen.dart';

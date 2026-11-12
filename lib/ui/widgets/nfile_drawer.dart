@@ -16,6 +16,7 @@ import 'quick_categories_grid.dart';
 import 'nfile_icon.dart';
 import '../screens/internal_file_picker_screen.dart';
 import '../screens/recycle_bin_screen.dart';
+import '../../screens/smart_cleanup_screen.dart';
 
 class NFileDrawer extends StatelessWidget {
   final VoidCallback toggleTheme;
@@ -115,6 +116,15 @@ class NFileDrawer extends StatelessWidget {
                       onTap: () {
                         Navigator.pop(context);
                         Navigator.push(context, MaterialPageRoute(builder: (_) => const RecycleBinScreen()));
+                      },
+                    ),
+                    _buildDrawerTile(
+                      context,
+                      icon: Broken.broom,
+                      title: 'Smart Cleanup',
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const SmartCleanupScreen()));
                       },
                     ),
 
